@@ -1,4 +1,4 @@
-// ── Extension upload payload ──
+// ── Highlight ──
 
 export interface Highlight {
   type: string;
@@ -11,14 +11,13 @@ export interface Highlight {
   } | null;
 }
 
+// ── Upload ──
+
 export interface UploadStep {
   index: number;
   description: string;
   actionType: string;
-  pageContext: {
-    title: string;
-    url: string;
-  };
+  pageContext: { title: string; url: string; };
   startTime: number;
   endTime: number;
   highlights?: Highlight[];
@@ -29,7 +28,7 @@ export interface CreateDemoInput {
   steps: UploadStep[];
 }
 
-// ── Database row types ──
+// ── DB ──
 
 export type DemoStatus =
   | 'uploading'
@@ -38,17 +37,16 @@ export type DemoStatus =
   | 'completed'
   | 'failed';
 
-export interface DemoRow {
+export interface DemoItem {
   id: string;
   title: string;
   status: DemoStatus;
-  created_at: Date;
-  updated_at: Date;
+  steps: StepItem[];
+  created_at: string;
+  updated_at: string;
 }
 
-export interface StepRow {
-  id: string;
-  demo_id: string;
+export interface StepItem {
   index: number;
   description: string;
   narration: string | null;
@@ -60,10 +58,9 @@ export interface StepRow {
   page_url: string;
   page_title: string;
   highlights: Highlight[];
-  created_at: Date;
 }
 
-// ── API response types ──
+// ── API Response ──
 
 export interface DemoResponse {
   id: string;
