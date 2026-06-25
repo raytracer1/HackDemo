@@ -2,7 +2,7 @@
  * Backend URL for API calls.
  * @type {string}
  */
-export const DEFAULT_BACKEND_URL = 'http://localhost:3001';
+export const DEFAULT_BACKEND_URL = 'https://hackdemo-backend.vercel.app';
 
 /**
  * Maximum gap (ms) between events before starting a new step.

@@ -1,5 +1,3 @@
-// ── Highlight ──
-
 export interface Highlight {
   type: string;
   elementText: string;
@@ -11,8 +9,6 @@ export interface Highlight {
   } | null;
 }
 
-// ── Upload ──
-
 export interface UploadStep {
   index: number;
   description: string;
@@ -23,28 +19,12 @@ export interface UploadStep {
   highlights?: Highlight[];
 }
 
-export interface CreateDemoInput {
-  title: string;
-  steps: UploadStep[];
-}
-
-// ── DB ──
-
 export type DemoStatus =
   | 'uploading'
   | 'processing_narration'
   | 'processing_audio'
   | 'completed'
   | 'failed';
-
-export interface DemoItem {
-  id: string;
-  title: string;
-  status: DemoStatus;
-  steps: StepItem[];
-  created_at: string;
-  updated_at: string;
-}
 
 export interface StepItem {
   index: number;
@@ -60,7 +40,14 @@ export interface StepItem {
   highlights: Highlight[];
 }
 
-// ── API Response ──
+export interface DemoItem {
+  id: string;
+  title: string;
+  status: DemoStatus;
+  steps: StepItem[];
+  created_at: string;
+  updated_at: string;
+}
 
 export interface DemoResponse {
   id: string;

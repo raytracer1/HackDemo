@@ -1,24 +1,15 @@
 import { FastifyInstance } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
-import { docClient, TABLE_NAME } from '../db/index.js';
-import { PutCommand, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { query } from '../db/index.js';
 import { uploadScreenshot, uploadAudio, getR2Url } from '../services/storage.js';
 import { generateNarration } from '../services/narration.js';
-import { generateAllVoiceovers } from '../services/voiceover.js';
-import type { CreateDemoInput, DemoItem, DemoResponse, StepItem } from '../shared/types.js';
-
-// ── Process demo async ──
+import { generateAudioForStep } from '../services/voiceover.js';
+import type { StepItem, DemoResponse } from '../shared/types.js';
 
 async function processDemo(demoId: string, steps: StepItem[]): Promise<void> {
   try {
-    console.log(`[Demo ${demoId}] Starting narration...`);
-    await docClient.send(new UpdateCommand({
-      TableName: TABLE_NAME,
-      Key: { id: demoId },
-      UpdateExpression: 'SET #status = :s, updated_at = :t',
-      ExpressionAttributeNames: { '#status': 'status' },
-      ExpressionAttributeValues: { ':s': 'processing_narration', ':t': new Date().toISOString() },
-    }));
+    console.log(`[Demo ${demoId}] Narration...`);
+    await query(`UPDATE demos SET status = 'processing_narration', updated_at = now() WHERE id = $1`, [demoId]);
 
     const stepInputs = steps.map((s) => ({
       index: s.index,
@@ -27,65 +18,46 @@ async function processDemo(demoId: string, steps: StepItem[]): Promise<void> {
     }));
 
     const narrations = await generateNarration(stepInputs);
-
-    // Update step narrations
     for (let i = 0; i < steps.length; i++) {
       steps[i].narration = narrations[i];
     }
 
-    console.log(`[Demo ${demoId}] Narration done, starting voiceover...`);
-    await docClient.send(new UpdateCommand({
-      TableName: TABLE_NAME,
-      Key: { id: demoId },
-      UpdateExpression: 'SET #status = :s, #steps = :steps, updated_at = :t',
-      ExpressionAttributeNames: { '#status': 'status', '#steps': 'steps' },
-      ExpressionAttributeValues: {
-        ':s': 'processing_audio',
-        ':steps': steps,
-        ':t': new Date().toISOString(),
-      },
-    }));
+    console.log(`[Demo ${demoId}] Voiceover (parallel)...`);
+    await query(
+      `UPDATE demos SET status = 'processing_audio', steps = $1, updated_at = now() WHERE id = $2`,
+      [JSON.stringify(steps), demoId]
+    );
 
-    const narrationItems = steps.map((s, i) => ({ index: i, narration: s.narration || '' }));
-    const audioMap = await generateAllVoiceovers(narrationItems);
+    // Parallel TTS for all steps
+    const results = await Promise.all(
+      steps
+        .filter((s) => s.narration)
+        .map(async (s) => {
+          const audio = await generateAudioForStep(s.narration!);
+          const audioKey = await uploadAudio(demoId, s.index, audio.buffer);
+          return { index: s.index, key: audioKey, durationMs: audio.durationMs };
+        })
+    );
 
-    for (const [index, audio] of audioMap) {
-      const audioKey = await uploadAudio(demoId, index, audio.buffer);
-      steps[index].audio_key = audioKey;
-      steps[index].duration_ms = audio.durationMs;
+    for (const r of results) {
+      steps[r.index].audio_key = r.key;
+      steps[r.index].duration_ms = r.durationMs;
     }
 
-    // Mark complete
-    await docClient.send(new UpdateCommand({
-      TableName: TABLE_NAME,
-      Key: { id: demoId },
-      UpdateExpression: 'SET #status = :s, #steps = :steps, updated_at = :t',
-      ExpressionAttributeNames: { '#status': 'status', '#steps': 'steps' },
-      ExpressionAttributeValues: {
-        ':s': 'completed',
-        ':steps': steps,
-        ':t': new Date().toISOString(),
-      },
-    }));
+    await query(
+      `UPDATE demos SET status = 'completed', steps = $1, updated_at = now() WHERE id = $2`,
+      [JSON.stringify(steps), demoId]
+    );
 
     console.log(`[Demo ${demoId}] Complete!`);
   } catch (err: any) {
     console.error(`[Demo ${demoId}] Failed:`, err.message);
-    await docClient.send(new UpdateCommand({
-      TableName: TABLE_NAME,
-      Key: { id: demoId },
-      UpdateExpression: 'SET #status = :s, updated_at = :t',
-      ExpressionAttributeNames: { '#status': 'status' },
-      ExpressionAttributeValues: { ':s': 'failed', ':t': new Date().toISOString() },
-    }));
+    await query(`UPDATE demos SET status = 'failed', updated_at = now() WHERE id = $1`, [demoId]);
   }
 }
 
-// ── Routes ──
-
 export default async function demoRoutes(fastify: FastifyInstance) {
 
-  // POST /api/demos
   fastify.post('/api/demos', async (request, reply) => {
     const parts = request.parts();
     let title = '';
@@ -107,7 +79,7 @@ export default async function demoRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Missing title or steps' });
     }
 
-    let uploadSteps: CreateDemoInput['steps'];
+    let uploadSteps: any[];
     try { uploadSteps = JSON.parse(stepsJson); } catch {
       return reply.status(400).send({ error: 'Invalid steps JSON' });
     }
@@ -116,9 +88,7 @@ export default async function demoRoutes(fastify: FastifyInstance) {
     }
 
     const demoId = uuidv4();
-    const now = new Date().toISOString();
 
-    // Upload screenshots to R2 and build step items
     const stepItems: StepItem[] = [];
     for (let i = 0; i < uploadSteps.length; i++) {
       const s = uploadSteps[i];
@@ -126,7 +96,6 @@ export default async function demoRoutes(fastify: FastifyInstance) {
       if (screenshotBuffers[i]) {
         screenshotKey = await uploadScreenshot(demoId, i, screenshotBuffers[i]);
       }
-
       stepItems.push({
         index: s.index,
         description: s.description,
@@ -142,20 +111,11 @@ export default async function demoRoutes(fastify: FastifyInstance) {
       });
     }
 
-    // Insert into DynamoDB
-    await docClient.send(new PutCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        id: demoId,
-        title,
-        status: 'processing_narration',
-        steps: stepItems,
-        created_at: now,
-        updated_at: now,
-      },
-    }));
+    await query(
+      `INSERT INTO demos (id, title, status, steps) VALUES ($1, $2, 'processing_narration', $3)`,
+      [demoId, title, JSON.stringify(stepItems)]
+    );
 
-    // Async processing
     processDemo(demoId, stepItems).catch((err) => {
       console.error(`[Demo ${demoId}] Async error:`, err);
     });
@@ -163,23 +123,19 @@ export default async function demoRoutes(fastify: FastifyInstance) {
     return reply.status(201).send({ id: demoId, status: 'processing_narration' });
   });
 
-  // GET /api/demos/:id
   fastify.get('/api/demos/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
 
-    const result = await docClient.send(new GetCommand({
-      TableName: TABLE_NAME,
-      Key: { id },
-    }));
+    const result = await query(`SELECT * FROM demos WHERE id = $1`, [id]);
 
-    if (!result.Item) {
+    if (!result.rows || result.rows.length === 0) {
       return reply.status(404).send({ error: 'Demo not found' });
     }
 
-    const demo = result.Item as DemoItem;
+    const demo = result.rows[0];
 
     const steps = await Promise.all(
-      demo.steps.map(async (step) => ({
+      (demo.steps || []).map(async (step: StepItem) => ({
         index: step.index,
         description: step.description,
         narration: step.narration,
