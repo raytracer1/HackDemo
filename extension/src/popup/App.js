@@ -5,18 +5,13 @@ import { createStepPreview } from './components/StepPreview.js';
 import { createProgressPanel } from './components/ProgressPanel.js';
 import { createSettingsPanel } from './components/SettingsPanel.js';
 
-/**
- * Full re-render of the popup UI.
- * Called whenever state changes.
- */
 export function render() {
   var root = document.getElementById('root');
   if (!root) return;
 
-  // Clear
   root.innerHTML = '';
 
-  // Header
+  // ── Header ──
   var header = document.createElement('div');
   header.className = 'header';
 
@@ -37,49 +32,57 @@ export function render() {
   refresh.textContent = state.appState === 'idle' ? 'Refresh' : '';
   refresh.onclick = function () { sendCommand({ type: 'GET_STATUS' }); };
   header.appendChild(refresh);
-
   root.appendChild(header);
 
-  // Status banner
+  // ── Status ──
   root.appendChild(createStatusBanner(state.appState, state.error));
 
-  // Content
+  // ── Content ──
   var content = document.createElement('div');
   content.className = 'content';
 
-  // Recording controls
-  if (state.appState === 'idle' || state.appState === 'recording') {
+  if (state.appState === 'idle' || state.appState === 'recording' || state.appState === 'paused') {
     content.appendChild(createRecordingControls(state.appState, state.duration));
   }
 
-  // Steps preview
-  if ((state.appState === 'steps_review' || state.appState === 'completed') && state.steps.length > 0) {
+  // Processing & completed: show steps + progress
+  if ((state.appState === 'processing' || state.appState === 'completed') && state.steps.length > 0) {
     content.appendChild(createStepPreview(state.steps));
   }
 
-  // Progress
-  if (state.appState === 'uploading' || state.appState === 'processing') {
-    content.appendChild(createProgressPanel(state.appState, state.progress));
+  if (state.appState === 'processing') {
+    content.appendChild(createProgressPanel('processing', state.progress));
   }
 
-  // Action buttons
+  if (state.appState === 'completed') {
+    content.appendChild(createProgressPanel('processing', { phase: 'Complete', percent: 100 }));
+  }
+
   var actions = document.createElement('div');
   actions.className = 'action-buttons';
 
-  if (state.appState === 'steps_review') {
-    var uploadBtn = document.createElement('button');
-    uploadBtn.className = 'btn btn-upload';
-    uploadBtn.textContent = 'Upload & Generate Demo';
-    uploadBtn.onclick = function () {
-      sendCommand({ type: 'UPLOAD_DEMO', title: 'Demo ' + new Date().toLocaleString() });
-    };
-    actions.appendChild(uploadBtn);
+  // Processing may fail; allow reset
+  if (state.appState === 'processing') {
+    if (state.demoId) {
+      var doneBtn = document.createElement('button');
+      doneBtn.className = 'btn btn-done';
+      doneBtn.textContent = 'Open Demo Page';
+      doneBtn.onclick = function () {
+        sendCommand({ type: 'OPEN_RESULT', demoId: state.demoId });
+      };
+      actions.appendChild(doneBtn);
+    }
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn btn-new';
+    cancelBtn.textContent = 'New Recording';
+    cancelBtn.onclick = function () { sendCommand({ type: 'CLEAR_SESSION' }); };
+    actions.appendChild(cancelBtn);
   }
 
   if (state.appState === 'completed' && state.demoId) {
     var viewBtn = document.createElement('button');
     viewBtn.className = 'btn btn-done';
-    viewBtn.textContent = 'View Demo Result';
+    viewBtn.textContent = 'View Demo';
     viewBtn.onclick = function () {
       sendCommand({ type: 'OPEN_RESULT', demoId: state.demoId });
     };
@@ -88,9 +91,7 @@ export function render() {
     var newBtn = document.createElement('button');
     newBtn.className = 'btn btn-new';
     newBtn.textContent = 'New Recording';
-    newBtn.onclick = function () {
-      sendCommand({ type: 'CLEAR_SESSION' });
-    };
+    newBtn.onclick = function () { sendCommand({ type: 'CLEAR_SESSION' }); };
     actions.appendChild(newBtn);
   }
 
@@ -98,16 +99,13 @@ export function render() {
     var resetBtn = document.createElement('button');
     resetBtn.className = 'btn btn-secondary';
     resetBtn.textContent = 'Reset';
-    resetBtn.onclick = function () {
-      sendCommand({ type: 'CLEAR_SESSION' });
-    };
+    resetBtn.onclick = function () { sendCommand({ type: 'CLEAR_SESSION' }); };
     actions.appendChild(resetBtn);
   }
 
   content.appendChild(actions);
   root.appendChild(content);
 
-  // Settings
   if (state.appState === 'idle') {
     root.appendChild(createSettingsPanel());
   }

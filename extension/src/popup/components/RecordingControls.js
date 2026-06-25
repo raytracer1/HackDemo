@@ -1,67 +1,63 @@
 import { sendCommand } from '../state.js';
 
-/**
- * @param {number} ms
- * @returns {string}
- */
-function formatTime(ms) {
-  var sec = Math.floor(ms / 1000);
-  var min = Math.floor(sec / 60);
-  var s = sec % 60;
-  return String(min).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-}
-
-/**
- * @param {string} state
- * @param {number} duration
- * @returns {HTMLElement}
- */
 export function createRecordingControls(state, duration) {
   var container = document.createElement('div');
   container.style.cssText = 'text-align:center;padding:16px 0;';
 
   var isRecording = state === 'recording';
+  var isPaused = state === 'paused';
 
-  // Timer
-  if (isRecording) {
-    var timer = document.createElement('div');
-    timer.className = 'timer-display';
-    timer.textContent = formatTime(duration);
-    container.appendChild(timer);
-  }
-
-  // Buttons
   var btnRow = document.createElement('div');
-  btnRow.style.cssText = 'display:flex;gap:12px;justify-content:center;margin-top:12px;';
+  btnRow.style.cssText = 'display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;';
   container.appendChild(btnRow);
 
-  if (!isRecording) {
+  if (!isRecording && !isPaused) {
+    // Idle: Start button
     var btn = document.createElement('button');
     btn.className = 'btn btn-start';
-    btn.style.width = 'auto';
-    btn.style.paddingLeft = '20px';
-    btn.style.paddingRight = '20px';
+    btn.style.cssText = 'width:auto;padding:10px 24px;';
     btn.disabled = state !== 'idle';
 
     var dot = document.createElement('span');
     dot.className = 'btn-start-record-dot';
     btn.appendChild(dot);
-    btn.appendChild(document.createTextNode('Start Recording'));
+    btn.appendChild(document.createTextNode('Start'));
     btn.onclick = function () { sendCommand({ type: 'START_RECORDING' }); };
     btnRow.appendChild(btn);
   } else {
-    var btn = document.createElement('button');
-    btn.className = 'btn btn-stop';
-    btn.style.width = 'auto';
-    btn.style.paddingLeft = '20px';
-    btn.style.paddingRight = '20px';
+    // Recording/Paused: Pause/Resume + Delete + Done
 
-    var sq = document.createElement('span');
-    sq.className = 'btn-stop-square';
-    btn.appendChild(sq);
-    btn.appendChild(document.createTextNode('Stop Recording'));
-    btn.onclick = function () { sendCommand({ type: 'STOP_RECORDING' }); };
-    btnRow.appendChild(btn);
+    // Pause / Resume
+    var pauseBtn = document.createElement('button');
+    pauseBtn.className = 'btn btn-secondary';
+    pauseBtn.style.cssText = 'width:auto;padding:8px 16px;font-size:12px;';
+    pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+    pauseBtn.onclick = function () {
+      sendCommand({ type: isPaused ? 'RESUME_RECORDING' : 'PAUSE_RECORDING' });
+    };
+    btnRow.appendChild(pauseBtn);
+
+    // Delete
+    var delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-secondary';
+    delBtn.style.cssText = 'width:auto;padding:8px 16px;font-size:12px;border-color:#ef4444;color:#fca5a5;';
+    delBtn.textContent = 'Delete';
+    delBtn.onclick = function () {
+      if (confirm('Discard this recording?')) {
+        sendCommand({ type: 'DELETE_RECORDING' });
+      }
+    };
+    btnRow.appendChild(delBtn);
+
+    // Done
+    if (isRecording) {
+      var doneBtn = document.createElement('button');
+      doneBtn.className = 'btn btn-done';
+      doneBtn.style.cssText = 'width:auto;padding:8px 16px;font-size:12px;';
+      doneBtn.textContent = 'Done';
+      doneBtn.onclick = function () { sendCommand({ type: 'DONE_RECORDING' }); };
+      btnRow.appendChild(doneBtn);
+    }
   }
 
   return container;

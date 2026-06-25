@@ -71,7 +71,7 @@ chrome.runtime.onMessage.addListener(function (msg) {
       break;
 
     case 'STEPS_READY':
-      updateState({ steps: msg.steps, appState: 'steps_review' });
+      updateState({ steps: msg.steps });
       break;
 
     case 'UPLOAD_PROGRESS':

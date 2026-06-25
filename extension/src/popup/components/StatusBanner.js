@@ -1,7 +1,7 @@
 var CONFIG = {
   idle:          { cls: 'idle',           label: 'Ready' },
   recording:     { cls: 'recording',      label: 'Recording...' },
-  steps_review:  { cls: 'steps_review',   label: 'Review Steps' },
+  paused:        { cls: 'uploading',      label: 'Paused' },
   uploading:     { cls: 'uploading',      label: 'Uploading...' },
   processing:    { cls: 'processing',     label: 'Processing...' },
   completed:     { cls: 'completed',      label: 'Demo Ready!' },

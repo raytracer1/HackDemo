@@ -1,14 +1,11 @@
-import { SESSION_KEY, SETTINGS_KEY, STEP_MERGE_WINDOW_MS } from '../shared/constants.js';
-import { startRecording, stopRecording, getRecordingDuration, captureScreenshot } from './recording-manager.js';
+import { SESSION_KEY, SETTINGS_KEY } from '../shared/constants.js';
+import { startRecording, stopRecording, getData, getRecordingDuration } from './recording-manager.js';
 import { generateSteps } from './step-generator.js';
 import { uploadDemo } from './api-client.js';
 
 // ── state ──
 
-/** @type {Object|null} */
 let session = null;
-/** @type {number} timestamp of last screenshot */
-let lastScreenshotTime = 0;
 
 async function getSession() {
   if (session) return session;
@@ -26,68 +23,64 @@ async function saveSession() {
   }
 }
 
-/** @param {Object} event */
 function updatePopup(event) {
   chrome.runtime.sendMessage(event).catch(function () {});
 }
 
-// ── Screenshot capture ──
-
-/**
- * Take a screenshot and store it in the session with timestamp.
- */
-async function takeScreenshot() {
-  try {
-    const dataUrl = await captureScreenshot();
-    const elapsed = Date.now() - session.startTime;
-    session.screenshots.push({ time: elapsed, dataUrl: dataUrl });
-    lastScreenshotTime = elapsed;
-    await saveSession();
-  } catch (err) {
-    console.warn('[HackDemo] Screenshot failed:', err.message);
-  }
+function updateBadge(count) {
+  chrome.action.setBadgeText({ text: String(count) });
+  chrome.action.setBadgeBackgroundColor({ color: '#ef4444' });
 }
 
-/**
- * Check if a new screenshot should be taken based on the incoming event.
- * @param {Object} event
- * @returns {boolean}
- */
-function shouldScreenshot(event) {
-  // Always screenshot on navigation and submit
-  if (event.type === 'navigation' || event.type === 'page_load' || event.type === 'submit') {
-    return true;
-  }
-  // Screenshot on click if enough time has passed since last screenshot
-  if (event.type === 'click') {
-    const elapsed = event.timestamp;
-    if (elapsed - lastScreenshotTime > STEP_MERGE_WINDOW_MS) {
-      return true;
-    }
-  }
-  return false;
+function clearBadge() {
+  chrome.action.setBadgeText({ text: '' });
 }
 
-// ── command router ──
+// ── Command router ──
 
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
+  // Screenshot request from content script
+  if (msg.type === 'CAPTURE') {
+    handleCapture().then(function () {
+      sendResponse({ ok: true });
+    });
+    return true;
+  }
+
+  // Step count update from content script
+  if (msg.type === 'STEP_COUNT') {
+    updateBadge(msg.count);
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  // RECORDING_DATA from content script
+  if (msg.type === 'RECORDING_DATA') {
+    handleRecordingData(msg.events, msg.steps).then(function () {
+      sendResponse({ ok: true });
+    });
+    return true;
+  }
+
+  // Commands from popup
   handleCommand(msg).then(sendResponse);
   return true;
 });
 
 async function handleCommand(cmd) {
   switch (cmd.type) {
-    case 'START_RECORDING': return handleStart();
-    case 'STOP_RECORDING':  return handleStop();
-    case 'GET_STATUS':      return handleStatus();
-    case 'UPLOAD_DEMO':     return handleUpload(cmd.title);
-    case 'OPEN_RESULT':     return handleOpen(cmd.demoId);
-    case 'CLEAR_SESSION':   return handleClear();
+    case 'START_RECORDING':   return handleStart();
+    case 'DONE_RECORDING':    return handleDone();
+    case 'PAUSE_RECORDING':   return handlePause();
+    case 'RESUME_RECORDING':  return handleResume();
+    case 'DELETE_RECORDING':  return handleDelete();
+    case 'GET_STATUS':        return handleStatus();
+    case 'CLEAR_SESSION':     return handleClear();
     default: return { success: false };
   }
 }
 
-// ── handlers ──
+// ── Handlers ──
 
 async function handleStart() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -100,39 +93,185 @@ async function handleStart() {
     title: tab.title || '',
     tabId: tab.id,
     startTime: Date.now(),
-    events: [],
-    steps: [],
-    screenshots: [],
     state: 'recording',
   };
-  lastScreenshotTime = 0;
 
-  await startRecording(tab.id, session.startTime);
-
-  // Take initial screenshot after a short delay (let page settle)
-  setTimeout(function () { takeScreenshot(); }, 500);
-
+  startRecording(tab.id, session.startTime);
+  updateBadge(0);
   await saveSession();
-  updatePopup({ type: 'STATUS_UPDATE', state: 'recording', recordingDuration: 0 });
+
+  updatePopup({ type: 'STATUS_UPDATE', state: 'recording' });
   return { success: true, sessionId: id };
 }
 
-async function handleStop() {
+async function handleDone() {
   const s = await getSession();
   if (!s || s.state !== 'recording') return { success: false };
 
-  // Take final screenshot before stopping
-  await takeScreenshot();
-  await stopRecording();
+  s.state = 'processing';
+  session = s;
+  await saveSession();
+  clearBadge();
+  updatePopup({ type: 'STATUS_UPDATE', state: 'processing' });
 
-  // Generate steps
-  const steps = generateSteps(s.events, s.screenshots);
+  // Get data from content script
+  try {
+    await getData();
+  } catch (err) {
+    console.error('[HackDemo] Failed to get data from content:', err.message);
+    session.state = 'error';
+    session.error = err.message;
+    await saveSession();
+    updatePopup({ type: 'ERROR', message: err.message });
+    return { success: false };
+  }
+
+  return { success: true };
+}
+
+async function handleCapture() {
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tabs[0] || !tabs[0].id) return;
+
+  chrome.tabs.captureVisibleTab(tabs[0].windowId, { format: 'png' }, function (dataUrl) {
+    if (chrome.runtime.lastError) {
+      console.warn('[HackDemo] captureVisibleTab failed:', chrome.runtime.lastError.message);
+      return;
+    }
+    if (session) {
+      session.screenshots = session.screenshots || [];
+      session.screenshots.push(dataUrl);
+      saveSession();
+    }
+  });
+}
+
+async function handleRecordingData(rawEvents, rawSteps) {
+  const s = session;
+  if (!s) return;
+
+  console.log('[HackDemo] Received', rawSteps.length, 'steps with', rawEvents.length, 'events');
+
+  // Convert raw steps to DemoStep format
+  const steps = [];
+  const screenshots = [];
+
+  for (let i = 0; i < rawSteps.length; i++) {
+    const rs = rawSteps[i];
+    const startTime = rs.events[0] ? rs.events[0].timestamp : 0;
+    const endTime = rs.events[rs.events.length - 1] ? rs.events[rs.events.length - 1].timestamp : 0;
+
+    // Match screenshot from background captures (by index)
+    const screenshot = (s.screenshots && s.screenshots[i]) ? s.screenshots[i] : null;
+
+    steps.push({
+      index: i,
+      events: rs.events,
+      startTime: startTime,
+      endTime: endTime,
+      description: autoDescribe(rs.events),
+      actionType: autoClassify(rs.events),
+      screenshot: screenshot,
+      highlights: rs.highlights || [],
+      pageContext: {
+        title: rs.events[rs.events.length - 1]?.pageTitle || '',
+        url: rs.events[rs.events.length - 1]?.url || '',
+      },
+    });
+
+    if (screenshot) {
+      screenshots.push(screenshot);
+    }
+  }
+
   s.steps = steps;
-  s.state = 'steps_review';
+  s.screenshots = screenshots;
   session = s;
   await saveSession();
 
-  updatePopup({ type: 'STEPS_READY', steps: steps });
+  clearBadge();
+  // Keep state as 'processing', don't send STEPS_READY
+  updatePopup({ type: 'STATUS_UPDATE', state: 'processing' });
+
+  // Fire upload in background, reset to idle immediately
+  const stored = await chrome.storage.local.get(SETTINGS_KEY);
+  const backendUrl = (stored[SETTINGS_KEY] && stored[SETTINGS_KEY].backendUrl) || 'http://localhost:3001';
+  const frontendUrl = backendUrl.replace('localhost:3001', 'localhost:5173');
+
+  uploadDemo(backendUrl, {
+    title: 'Demo ' + new Date().toLocaleString(),
+    steps: steps,
+    screenshots: screenshots,
+  }).then(function (result) {
+    return chrome.tabs.create({ url: frontendUrl + '/#/demo/' + result.id });
+  }).catch(function (err) {
+    console.error('[HackDemo] Upload failed:', err.message);
+  });
+
+  // Reset to idle immediately
+  session = null;
+  await chrome.storage.session.remove(SESSION_KEY);
+  updatePopup({ type: 'STATUS_UPDATE', state: 'idle' });
+}
+
+// Simple descriptions (same logic as step-generator, simplified)
+function autoDescribe(events) {
+  if (events.length === 0) return 'Unknown action';
+  if (events.length === 1) {
+    var e = events[0];
+    switch (e.type) {
+      case 'click':      return 'Clicked "' + e.elementText + '"';
+      case 'input':      return 'Entered text in "' + e.elementText + '"';
+      case 'submit':     return 'Submitted form';
+      case 'navigation': return 'Navigated to ' + e.pageTitle;
+      case 'page_load':  return 'Loaded ' + e.pageTitle;
+      default: return e.type;
+    }
+  }
+  var clicks = events.filter(function (e) { return e.type === 'click'; });
+  var inputs = events.filter(function (e) { return e.type === 'input'; });
+  if (inputs.length > 0 && clicks.length > 0) {
+    return 'Filled in ' + inputs.length + ' fields and clicked "' + clicks[clicks.length - 1].elementText + '"';
+  }
+  if (clicks.length === events.length) return 'Clicked ' + clicks.length + ' elements';
+  return 'Performed ' + events.length + ' actions';
+}
+
+function autoClassify(events) {
+  var types = new Set(events.map(function (e) { return e.type; }));
+  if (types.has('submit')) return 'form_submit';
+  if (types.has('input')) return 'form_fill';
+  if (types.has('navigation') || types.has('page_load')) return 'navigation';
+  if (types.has('click')) return 'click';
+  return 'mixed';
+}
+
+async function handlePause() {
+  const s = await getSession();
+  if (!s || s.state !== 'recording') return { success: false };
+  s.state = 'paused';
+  session = s;
+  await saveSession();
+  updatePopup({ type: 'STATUS_UPDATE', state: 'paused' });
+  return { success: true };
+}
+
+async function handleResume() {
+  const s = await getSession();
+  if (!s || s.state !== 'paused') return { success: false };
+  s.state = 'recording';
+  session = s;
+  await saveSession();
+  updatePopup({ type: 'STATUS_UPDATE', state: 'recording' });
+  return { success: true };
+}
+
+async function handleDelete() {
+  stopRecording();
+  session = null;
+  clearBadge();
+  await chrome.storage.session.remove(SESSION_KEY);
+  updatePopup({ type: 'STATUS_UPDATE', state: 'idle' });
   return { success: true };
 }
 
@@ -142,134 +281,24 @@ async function handleStatus() {
     updatePopup({ type: 'STATUS_UPDATE', state: 'idle' });
     return { state: 'idle' };
   }
-
   updatePopup({
     type: 'STATUS_UPDATE',
     state: s.state,
     recordingDuration: s.state === 'recording' ? getRecordingDuration() : undefined,
   });
-
-  if (s.steps.length > 0) {
+  if (s.steps && s.steps.length > 0) {
     updatePopup({ type: 'STEPS_READY', steps: s.steps });
   }
-
   return { state: s.state };
-}
-
-async function handleUpload(title) {
-  const s = await getSession();
-  if (!s || s.steps.length === 0) return { success: false };
-
-  s.state = 'uploading';
-  s.title = title;
-  session = s;
-  await saveSession();
-  updatePopup({ type: 'STATUS_UPDATE', state: 'uploading' });
-
-  try {
-    const stored = await chrome.storage.local.get(SETTINGS_KEY);
-    const backendUrl = (stored[SETTINGS_KEY] && stored[SETTINGS_KEY].backendUrl) || 'http://localhost:3001';
-
-    updatePopup({ type: 'UPLOAD_PROGRESS', phase: 'uploading', percent: 20 });
-
-    // Extract screenshot data URLs for upload
-    const screenshotDataUrls = s.screenshots.map(function (s) { return s.dataUrl; });
-
-    const result = await uploadDemo(backendUrl, {
-      title: s.title,
-      steps: s.steps,
-      screenshots: screenshotDataUrls,
-    });
-
-    session.demoId = result.id;
-    session.state = 'processing';
-    await saveSession();
-
-    updatePopup({ type: 'UPLOAD_COMPLETE', demoId: result.id });
-    pollProcessing(backendUrl, result.id);
-
-    return { success: true, demoId: result.id };
-  } catch (err) {
-    session.state = 'error';
-    session.error = err.message;
-    await saveSession();
-    updatePopup({ type: 'ERROR', message: err.message });
-    return { success: false, error: err.message };
-  }
-}
-
-async function handleOpen(demoId) {
-  const stored = await chrome.storage.local.get(SETTINGS_KEY);
-  const backendUrl = (stored[SETTINGS_KEY] && stored[SETTINGS_KEY].backendUrl) || 'http://localhost:3001';
-  const frontendUrl = backendUrl.replace('localhost:3001', 'localhost:5173');
-
-  await chrome.tabs.create({
-    url: frontendUrl + '/#/demo/' + demoId,
-  });
 }
 
 async function handleClear() {
   session = null;
+  clearBadge();
   await chrome.storage.session.remove(SESSION_KEY);
   updatePopup({ type: 'STATUS_UPDATE', state: 'idle' });
   return { success: true };
 }
-
-// ── Polling ──
-
-async function pollProcessing(backendUrl, demoId) {
-  for (let i = 0; i < 60; i++) {
-    await new Promise(function (r) { return setTimeout(r, 3000); });
-
-    try {
-      const resp = await fetch(backendUrl + '/api/demos/' + demoId);
-      const demo = await resp.json();
-
-      if (demo.status === 'completed') {
-        updatePopup({ type: 'PROCESSING_COMPLETE', demo: demo });
-        if (session) { session.state = 'completed'; await saveSession(); }
-        return;
-      }
-
-      if (demo.status === 'failed') {
-        updatePopup({ type: 'ERROR', message: 'Processing failed on server' });
-        if (session) { session.state = 'error'; session.error = 'Processing failed'; await saveSession(); }
-        return;
-      }
-
-      updatePopup({ type: 'PROCESSING_UPDATE', status: demo.status });
-    } catch (_) { /* retry */ }
-  }
-
-  updatePopup({ type: 'ERROR', message: 'Processing timed out' });
-}
-
-// ── Content script port ──
-// Buffer events and trigger screenshots at step boundaries
-
-chrome.runtime.onConnect.addListener(function (port) {
-  if (port.name === 'content-events') {
-    port.onMessage.addListener(async function (msg) {
-      if (msg.type === 'EVENT_RECORDED' && session && session.state === 'recording') {
-        const event = msg.event;
-
-        // Filter noise
-        if (event.elementRole === 'body' || event.elementRole === 'html') return;
-        if (!event.elementText && event.type !== 'navigation' && event.type !== 'page_load') return;
-
-        // Store event
-        session.events.push(event);
-
-        // Take screenshot at boundaries
-        if (shouldScreenshot(event)) {
-          await takeScreenshot();
-        }
-
-        await saveSession();
-      }
-    });
-  }
-});
 
 // ── Keep-alive ──
 
