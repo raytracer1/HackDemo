@@ -45,8 +45,28 @@ function updateBadge(count) {
   chrome.action.setBadgeBackgroundColor({ color: '#ef4444' });
 }
 
+function setRecordingIcon(recording) {
+  var file = recording ? 'recording.png' : 'normal.png';
+  var url = chrome.runtime.getURL('icons/' + file);
+  console.log('[HackDemo] Setting icon:', url);
+
+  fetch(url).then(function (r) { return r.blob(); }).then(function (blob) {
+    return createImageBitmap(blob);
+  }).then(function (bitmap) {
+    var canvas = new OffscreenCanvas(128, 128);
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, 128, 128);
+    return ctx.getImageData(0, 0, 128, 128);
+  }).then(function (imageData) {
+    return chrome.action.setIcon({ imageData: { '128': imageData } });
+  }).catch(function (err) {
+    console.error('[HackDemo] setIcon error:', err.message);
+  });
+}
+
 function clearBadge() {
   chrome.action.setBadgeText({ text: '' });
+  setRecordingIcon(false);
 }
 
 // ── Command router ──
@@ -111,6 +131,7 @@ async function handleStart() {
 
   startRecording(tab.id, session.startTime);
   updateBadge(0);
+  setRecordingIcon(true);
   await saveSession();
 
   updatePopup({ type: 'STATUS_UPDATE', state: 'recording' });
