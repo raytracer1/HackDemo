@@ -1,49 +1,83 @@
 /**
- * Upload demo steps + screenshots to backend.
- * @param {string} backendUrl
- * @param {{ title: string, steps: Object[], screenshots: string[] }} payload
- * @returns {Promise<{ id: string, status: string }>}
+ * 1. POST /api/demos (JSON only) → get demoId + uploadUrls
+ * 2. PUT screenshots directly to R2 pre-signed URLs
+ * 3. POST /api/demos/:id/confirm → trigger processing
  */
 export async function uploadDemo(backendUrl, payload) {
-  const formData = new FormData();
-  formData.append('title', payload.title);
-  formData.append('steps', JSON.stringify(payload.steps));
+  // Step 1: Create demo, get pre-signed upload URLs
+  const stepsPayload = payload.steps.map(function (s) {
+    return {
+      index: s.index,
+      description: s.description,
+      actionType: s.actionType,
+      pageContext: s.pageContext,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      highlights: s.highlights || [],
+    };
+  });
 
-  for (let i = 0; i < payload.screenshots.length; i++) {
-    const dataUrl = payload.screenshots[i];
-    if (dataUrl) {
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
-      formData.append('screenshots', blob, 'step_' + i + '.png');
+  const createResp = await fetch(backendUrl + '/api/demos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: payload.title,
+      steps: stepsPayload,
+    }),
+  });
+
+  if (!createResp.ok) {
+    const text = await createResp.text().catch(function () { return 'Unknown error'; });
+    throw new Error('Create demo failed: ' + createResp.status + ' ' + text);
+  }
+
+  const createData = await createResp.json();
+  const demoId = createData.id;
+  const uploadUrls = createData.uploadUrls;
+
+  console.log('[HackDemo] Demo created:', demoId, 'with', uploadUrls.length, 'upload URLs');
+
+  // Step 2: Upload screenshots directly to R2
+  for (var i = 0; i < uploadUrls.length; i++) {
+    var screenshot = payload.screenshots[i];
+    if (!screenshot) continue;
+
+    try {
+      // Convert data URL to blob
+      var resp = await fetch(screenshot);
+      var blob = await resp.blob();
+
+      // Convert data URL to blob for upload
+      var resp = await fetch(screenshot);
+      var blob = await resp.blob();
+
+      // PUT directly to R2 pre-signed URL
+      var putResp = await fetch(uploadUrls[i], {
+        method: 'PUT',
+        body: blob,
+        headers: { 'Content-Type': 'image/jpeg' },
+      });
+
+      if (!putResp.ok) {
+        console.warn('[HackDemo] Screenshot upload failed for step', i, ':', putResp.status);
+      }
+    } catch (err) {
+      console.warn('[HackDemo] Screenshot upload error for step', i, ':', err.message);
     }
   }
 
-  const resp = await fetch(backendUrl + '/api/demos', {
+  console.log('[HackDemo] Screenshots uploaded');
+
+  // Step 3: Confirm upload
+  var confirmResp = await fetch(backendUrl + '/api/demos/' + demoId + '/confirm', {
     method: 'POST',
-    body: formData,
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
   });
 
-  if (!resp.ok) {
-    const text = await resp.text().catch(function () { return 'Unknown error'; });
-    throw new Error('Upload failed: ' + resp.status + ' ' + text);
+  if (!confirmResp.ok) {
+    throw new Error('Confirm failed: ' + confirmResp.status);
   }
 
-  return resp.json();
-}
-
-/**
- * Fetch demo from backend.
- * @param {string} backendUrl
- * @param {string} demoId
- * @returns {Promise<Object>}
- */
-export async function fetchDemo(backendUrl, demoId) {
-  const resp = await fetch(backendUrl + '/api/demos/' + demoId);
-
-  if (!resp.ok) {
-    const text = await resp.text().catch(function () { return 'Unknown error'; });
-    throw new Error('Fetch failed: ' + resp.status + ' ' + text);
-  }
-
-  return resp.json();
+  return { id: demoId };
 }

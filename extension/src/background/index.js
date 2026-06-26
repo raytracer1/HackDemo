@@ -133,7 +133,7 @@ async function handleCapture() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tabs[0] || !tabs[0].id) return;
 
-  chrome.tabs.captureVisibleTab(tabs[0].windowId, { format: 'png' }, function (dataUrl) {
+  chrome.tabs.captureVisibleTab(tabs[0].windowId, { format: 'jpeg', quality: 80 }, function (dataUrl) {
     if (chrome.runtime.lastError) {
       console.warn('[HackDemo] captureVisibleTab failed:', chrome.runtime.lastError.message);
       return;

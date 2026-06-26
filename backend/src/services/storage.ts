@@ -32,6 +32,19 @@ export async function uploadToR2(
 }
 
 /**
+ * Generate a pre-signed upload URL (PUT) for an R2 object.
+ * Extension uploads directly to R2, no body limits.
+ */
+export async function getUploadUrl(key: string, contentType: string): Promise<string> {
+  const command = new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    ContentType: contentType,
+  });
+  return getSignedUrl(r2, command, { expiresIn: 300 }); // 5 min expiry
+}
+
+/**
  * Generate a pre-signed download URL for an R2 object.
  */
 export async function getR2Url(key: string): Promise<string> {

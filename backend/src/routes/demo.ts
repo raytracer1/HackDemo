@@ -1,10 +1,12 @@
 import { FastifyInstance } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
 import { query } from '../db/index.js';
-import { uploadScreenshot, uploadAudio, getR2Url } from '../services/storage.js';
+import { uploadAudio, getUploadUrl, getR2Url } from '../services/storage.js';
 import { generateNarration } from '../services/narration.js';
 import { generateAudioForStep } from '../services/voiceover.js';
 import type { StepItem, DemoResponse } from '../shared/types.js';
+
+// ── Process async ──
 
 async function processDemo(demoId: string, steps: StepItem[]): Promise<void> {
   try {
@@ -28,7 +30,6 @@ async function processDemo(demoId: string, steps: StepItem[]): Promise<void> {
       [JSON.stringify(steps), demoId]
     );
 
-    // Parallel TTS for all steps
     const results = await Promise.all(
       steps
         .filter((s) => s.narration)
@@ -56,73 +57,87 @@ async function processDemo(demoId: string, steps: StepItem[]): Promise<void> {
   }
 }
 
+// ── Routes ──
+
 export default async function demoRoutes(fastify: FastifyInstance) {
 
+  /**
+   * POST /api/demos — JSON only, no files.
+   * Returns pre-signed R2 upload URLs for each screenshot.
+   */
   fastify.post('/api/demos', async (request, reply) => {
-    const parts = request.parts();
-    let title = '';
-    const screenshotBuffers: Buffer[] = [];
-    let stepsJson = '';
+    const body = request.body as any;
+    const { title, steps: rawSteps } = body || {};
 
-    for await (const part of parts) {
-      if (part.type === 'field') {
-        if (part.fieldname === 'title') title = part.value as string;
-        else if (part.fieldname === 'steps') stepsJson = part.value as string;
-      } else if (part.type === 'file') {
-        const chunks: Buffer[] = [];
-        for await (const chunk of part.file) chunks.push(chunk);
-        screenshotBuffers.push(Buffer.concat(chunks));
-      }
-    }
-
-    if (!title || !stepsJson) {
+    if (!title || !rawSteps || !Array.isArray(rawSteps) || rawSteps.length === 0) {
       return reply.status(400).send({ error: 'Missing title or steps' });
     }
 
-    let uploadSteps: any[];
-    try { uploadSteps = JSON.parse(stepsJson); } catch {
-      return reply.status(400).send({ error: 'Invalid steps JSON' });
-    }
-    if (uploadSteps.length === 0) {
-      return reply.status(400).send({ error: 'No steps provided' });
-    }
-
     const demoId = uuidv4();
+    const uploadUrls: string[] = [];
 
+    // Build step items and generate upload URLs
     const stepItems: StepItem[] = [];
-    for (let i = 0; i < uploadSteps.length; i++) {
-      const s = uploadSteps[i];
-      let screenshotKey = '';
-      if (screenshotBuffers[i]) {
-        screenshotKey = await uploadScreenshot(demoId, i, screenshotBuffers[i]);
-      }
+    for (let i = 0; i < rawSteps.length; i++) {
+      const s = rawSteps[i];
+      const screenshotKey = `demos/${demoId}/screenshots/${i}.jpg`;
+
+      // Generate pre-signed upload URL (extension uploads directly to R2)
+      const uploadUrl = await getUploadUrl(screenshotKey, 'image/jpeg');
+      uploadUrls.push(uploadUrl);
+
       stepItems.push({
-        index: s.index,
-        description: s.description,
+        index: i,
+        description: s.description || '',
         screenshot_key: screenshotKey,
         audio_key: null,
         narration: null,
         duration_ms: null,
-        start_time: s.startTime,
-        end_time: s.endTime,
+        start_time: s.startTime || 0,
+        end_time: s.endTime || 0,
         page_url: s.pageContext?.url || '',
         page_title: s.pageContext?.title || '',
         highlights: s.highlights || [],
       });
     }
 
+    // Insert demo with screenshot keys (not yet confirmed uploaded)
     await query(
-      `INSERT INTO demos (id, title, status, steps) VALUES ($1, $2, 'processing_narration', $3)`,
+      `INSERT INTO demos (id, title, status, steps) VALUES ($1, $2, 'awaiting_upload', $3)`,
       [demoId, title, JSON.stringify(stepItems)]
     );
 
-    processDemo(demoId, stepItems).catch((err) => {
-      console.error(`[Demo ${demoId}] Async error:`, err);
+    return reply.status(201).send({
+      id: demoId,
+      uploadUrls,
     });
-
-    return reply.status(201).send({ id: demoId, status: 'processing_narration' });
   });
 
+  /**
+   * POST /api/demos/:id/confirm — screenshots uploaded, start processing.
+   */
+  fastify.post('/api/demos/:id/confirm', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const result = await query(`SELECT * FROM demos WHERE id = $1`, [id]);
+    if (!result.rows || result.rows.length === 0) {
+      return reply.status(404).send({ error: 'Demo not found' });
+    }
+
+    const demo = result.rows[0];
+    const steps = demo.steps || [];
+
+    // Start async processing
+    processDemo(id, steps).catch((err) => {
+      console.error(`[Demo ${id}] Async error:`, err);
+    });
+
+    return reply.send({ id, status: 'processing' });
+  });
+
+  /**
+   * GET /api/demos/:id
+   */
   fastify.get('/api/demos/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
 
