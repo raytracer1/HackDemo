@@ -4,7 +4,10 @@
 console.log('[HackDemo] Content script loaded:', window.location.href);
 
 let isTracking = false;
+let isActive = false; // true after blur overlay fades
 let recordingStartTime = 0;
+let pauseStartTime = 0;
+let totalPauseMs = 0;
 let events = [];
 let steps = [];
 let currentStep = { events: [], highlights: [] };
@@ -154,7 +157,7 @@ function createEvent(type, el, extra) {
   if (!el) {
     return {
       id: crypto.randomUUID(),
-      timestamp: Date.now() - recordingStartTime,
+      timestamp: Date.now() - recordingStartTime - totalPauseMs,
       type: type,
       pageTitle: document.title,
       url: window.location.href,
@@ -167,7 +170,7 @@ function createEvent(type, el, extra) {
   }
   return {
     id: crypto.randomUUID(),
-    timestamp: Date.now() - recordingStartTime,
+    timestamp: Date.now() - recordingStartTime - totalPauseMs,
     type: type,
     pageTitle: document.title,
     url: window.location.href,
@@ -179,7 +182,7 @@ function createEvent(type, el, extra) {
 }
 
 function recordEvent(type, el, extra) {
-  if (!isTracking) return;
+  if (!isActive) return;
   if (!el) return;
   // Ignore clicks inside HackDemo panel
   if (el.closest && el.closest('#hackdemo-panel')) return;
@@ -271,17 +274,22 @@ function showBlur() {
 
 function hideBlur() {
   if (blurEl) { blurEl.remove(); blurEl = null; }
-  // After start overlay fades, create a "start" step with screenshot
-  if (isTracking && steps.length === 0) {
-    setTimeout(function () {
-      var event = createEvent('lifecycle', null);
-      event.elementText = 'start';
-      event.elementRole = 'lifecycle';
-      events.push(event);
-      steps.push({ events: [event], highlights: [], description: 'start' });
-      panelSteps = steps;
-      chrome.runtime.sendMessage({ type: 'STEP_COUNT', count: steps.length }).catch(function () {});
-    }, 300);
+  // After start overlay fades, recording actually begins
+  if (!isTracking) return;
+  if (steps.length === 0) {
+    isActive = true;
+    recordingStartTime = Date.now();
+    // Tell background to start screen recording NOW (after blur fades)
+    chrome.runtime.sendMessage({ type: 'START_SCREEN_RECORDING' }).catch(function () {});
+    var event = createEvent('lifecycle', null);
+    event.elementText = 'start';
+    event.elementRole = 'lifecycle';
+    event.timestamp = 0;
+    events.push(event);
+    steps.push({ events: [event], highlights: [], description: 'start' });
+    panelSteps = steps;
+    chrome.runtime.sendMessage({ type: 'STEP_COUNT', count: steps.length }).catch(function () {});
+    console.log('[HackDemo] Recording started (after overlay)');
   }
 }
 
@@ -295,10 +303,37 @@ var panelProgress = { phase: '', percent: 0 };
 var panelError = null;
 var panelDemoId = null;
 
+var manualPaused = false;
+
+// Recording is active only when panel hidden + not manually paused
+function shouldRecord() { return !panel && !manualPaused; }
+
 function togglePanel() {
-  if (panel) { closePanel(); return; }
-  showBlur();
-  openPanel();
+  if (panel) {
+    closePanel();
+    // Resume after 300ms for clean frames
+    if (!manualPaused) {
+      setTimeout(function () { sendCmd({ type: 'RESUME_RECORDING' }); }, 300);
+    }
+    return;
+  }
+  // Pause recording when panel opens
+  sendCmd({ type: 'PAUSE_RECORDING' });
+  setTimeout(function () { showBlur(); openPanel(); }, 300);
+}
+
+function toggleManualPause() {
+  manualPaused = !manualPaused;
+  if (manualPaused) {
+    sendCmd({ type: 'PAUSE_RECORDING' });
+    closePanel();
+    showRecBar();
+  } else {
+    closePanel();
+    setTimeout(function () {
+      sendCmd({ type: 'RESUME_RECORDING' });
+    }, 300);
+  }
 }
 
 function openPanel() {
@@ -350,8 +385,8 @@ function addRecBarButtons() {
 
   var pauseBtn = document.createElement('button');
   pauseBtn.style.cssText = 'display:flex;align-items:center;gap:4px;padding:8px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:500;color:#475569;cursor:pointer;white-space:nowrap;';
-  pauseBtn.innerHTML = panelState === 'paused' ? '&#9654; Resume' : '&#10074;&#10074; Pause';
-  pauseBtn.onclick = function () { sendCmd({ type: panelState === 'paused' ? 'RESUME_RECORDING' : 'PAUSE_RECORDING' }); };
+  pauseBtn.innerHTML = manualPaused ? '&#9654; Resume' : '&#10074;&#10074; Pause';
+  pauseBtn.onclick = function () { toggleManualPause(); };
   btns.appendChild(pauseBtn);
 
   var delBtn = document.createElement('button');
@@ -534,9 +569,11 @@ function renderPanel() {
     subRow.style.cssText = 'display:flex;gap:8px;';
     var pauseBtn = document.createElement('button');
     pauseBtn.style.cssText = 'flex:1;padding:8px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:500;color:#475569;cursor:pointer;';
-    pauseBtn.textContent = panelState === 'paused' ? 'Resume' : 'Pause';
-    pauseBtn.onclick = function () { sendCmd({ type: panelState === 'paused' ? 'RESUME_RECORDING' : 'PAUSE_RECORDING' }); };
+    pauseBtn.textContent = manualPaused ? 'Resume' : 'Pause';
+    pauseBtn.onclick = function () { toggleManualPause(); };
     subRow.appendChild(pauseBtn);
+
+    // Delete
 
     var delBtn = document.createElement('button');
     delBtn.style.cssText = 'flex:1;padding:8px;background:#f1f5f9;border:1px solid #fecaca;border-radius:8px;font-size:12px;font-weight:500;color:#ef4444;cursor:pointer;';
@@ -662,6 +699,7 @@ function showStartOverlay() {
 function startTracking(startTime) {
   recordingStartTime = startTime;
   isTracking = true;
+  isActive = false; // Wait for blur overlay to fade
   events = [];
   steps = [];
   currentStep = { events: [], highlights: [] };
@@ -670,11 +708,12 @@ function startTracking(startTime) {
   setupListeners();
   showStartOverlay();
   chrome.runtime.sendMessage({ type: 'STEP_COUNT', count: 0 }).catch(function () {});
-  console.log('[HackDemo] Recording started');
+  console.log('[HackDemo] Recording prepared');
 }
 
 function stopTracking() {
   isTracking = false;
+  isActive = false;
   removeListeners();
   hideBlur();
   console.log('[HackDemo] Recording stopped');
@@ -737,7 +776,19 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
       stopTracking();
       sendResponse({ ok: true });
       break;
+    case 'PAUSE_TRACKING':
+      isActive = false;
+      pauseStartTime = Date.now();
+      sendResponse({ ok: true });
+      break;
+    case 'RESUME_TRACKING':
+      totalPauseMs += Date.now() - pauseStartTime;
+      isActive = true;
+      closePanel();
+      sendResponse({ ok: true });
+      break;
     case 'GET_DATA':
+      console.log('[HackDemo cs] GET_DATA received, steps:', steps.length);
       stopTracking();
       sendData().then(function () {
         sendResponse({ ok: true });

@@ -74,19 +74,16 @@ export default async function demoRoutes(fastify: FastifyInstance) {
     }
 
     const demoId = uuidv4();
-    const uploadUrls: string[] = [];
+    const videoKey = `demos/${demoId}/recording.webm`;
+    const videoUploadUrl = await getUploadUrl(videoKey, 'video/webm');
 
     const stepItems: StepItem[] = [];
     for (let i = 0; i < rawSteps.length; i++) {
       const s = rawSteps[i];
-      const screenshotKey = `demos/${demoId}/screenshots/${i}.jpg`;
-      const uploadUrl = await getUploadUrl(screenshotKey, 'image/jpeg');
-      uploadUrls.push(uploadUrl);
-
       stepItems.push({
         index: i,
         description: s.description || '',
-        screenshot_key: screenshotKey,
+        screenshot_key: '',
         audio_key: null,
         narration: null,
         duration_ms: null,
@@ -105,7 +102,7 @@ export default async function demoRoutes(fastify: FastifyInstance) {
 
     return reply.status(201).send({
       id: demoId,
-      uploadUrls,
+      videoUploadUrl,
     });
   });
 
@@ -150,7 +147,7 @@ export default async function demoRoutes(fastify: FastifyInstance) {
         index: step.index,
         description: step.description,
         narration: step.narration,
-        screenshotUrl: step.screenshot_key ? await getR2Url(step.screenshot_key) : '',
+        screenshotUrl: '',
         audioUrl: step.audio_key ? await getR2Url(step.audio_key) : null,
         durationMs: step.duration_ms,
         startTime: step.start_time,
@@ -161,10 +158,14 @@ export default async function demoRoutes(fastify: FastifyInstance) {
       }))
     );
 
+    const videoKey = `demos/${demo.id}/recording.webm`;
+    const videoUrl = await getR2Url(videoKey);
+
     const response: DemoResponse = {
       id: demo.id,
       title: demo.title,
       status: demo.status,
+      videoUrl,
       steps,
     };
 

@@ -1,5 +1,5 @@
 import { SESSION_KEY, SETTINGS_KEY, DEFAULT_BACKEND_URL, DEFAULT_FRONTEND_URL } from '../shared/constants.js';
-import { startRecording, stopRecording, pauseRecording, resumeRecording, getData, getRecordingDuration, getFrames } from './recording-manager.js';
+import { startRecording, startScreenCapture, stopRecording, pauseRecording, resumeRecording, getData, getRecordingDuration, getVideoBlob } from './recording-manager.js';
 // uploadDemo inline
 
 // ── state ──
@@ -68,6 +68,11 @@ function clearBadge() {
 // ── Command router ──
 
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
+  if (msg.type === 'START_SCREEN_RECORDING') {
+    startScreenCapture().then(function () { sendResponse({ ok: true }); });
+    return true;
+  }
+
   if (msg.type === 'STEP_COUNT') {
     updateBadge(msg.count);
     sendResponse({ ok: true });
@@ -125,8 +130,10 @@ async function handleStart(cmd) {
 }
 
 async function handleDone() {
+  console.log('[HackDemo] DONE received');
   const s = await getSession();
-  if (!s || s.state !== 'recording') return { success: false };
+  console.log('[HackDemo] Session:', s ? s.state : 'null');
+  if (!s || (s.state !== 'recording' && s.state !== 'paused')) return { success: false };
 
   s.state = 'processing';
   session = s;
@@ -170,7 +177,8 @@ async function handleRecordingData(rawEvents, rawSteps) {
   s.steps = steps;
   session = s;
   clearBadge();
-  updatePopup({ type: 'STATUS_UPDATE', state: 'processing' });
+  // Close panel immediately, don't show upload progress
+  updatePopup({ type: 'STATUS_UPDATE', state: 'idle' });
 
   // Create demo + open tab immediately (before frame extraction)
   const stored = await chrome.storage.local.get(SETTINGS_KEY);
@@ -189,22 +197,30 @@ async function handleRecordingData(rawEvents, rawSteps) {
     console.log('[HackDemo] Tab opened for', demoId);
 
     // Now: 1s delay → getFrames → upload screenshots in background
-    setTimeout(async function () {
-      await new Promise(function (r) { return setTimeout(r, 1000); });
-      var timestamps = rawSteps.map(function (rs) { return rs.events[0] ? rs.events[0].timestamp : 0; });
-      var frames = await getFrames(timestamps);
-      console.log('[HackDemo] Extracted', frames.length, 'frames');
+    // 1s delay → get video → upload to R2
+    await new Promise(function (r) { return setTimeout(r, 1000); });
+    var videoDataUrl = await getVideoBlob();
+    console.log('[HackDemo] Video blob:', videoDataUrl ? 'got ' + Math.round(videoDataUrl.length / 1024) + ' KB' : 'NULL');
 
-      var screenshots = [];
-      for (var i = 0; i < steps.length; i++) {
-        var f = (frames[i] && frames[i].dataUrl) ? frames[i].dataUrl : null;
-        steps[i].screenshot = f;
-        if (f) screenshots.push(f);
+    if (videoDataUrl && createData.videoUploadUrl) {
+      try {
+        var resp = await fetch(videoDataUrl);
+        var blob = await resp.blob();
+        console.log('[HackDemo] Uploading video, size:', Math.round(blob.size / 1024), 'KB');
+        var putResp = await fetch(createData.videoUploadUrl, { method: 'PUT', body: blob, headers: { 'Content-Type': 'video/webm' } });
+        console.log('[HackDemo] Video upload status:', putResp.status);
+      } catch (err) {
+        console.error('[HackDemo] Video upload failed:', err.message);
       }
+    } else {
+      console.warn('[HackDemo] Missing videoDataUrl or uploadUrl');
+    }
 
-      // Upload screenshots
-      await uploadScreenshots(backendUrl, demoId, createData.uploadUrls, screenshots);
-    }, 0);
+    // Confirm
+    var confirmResp = await fetch(backendUrl + '/api/demos/' + demoId + '/confirm', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+    });
+    console.log('[HackDemo] Confirm status:', confirmResp.status);
   } catch (err) {
     console.error('[HackDemo] Create demo failed:', err.message);
   }
@@ -214,19 +230,6 @@ async function handleRecordingData(rawEvents, rawSteps) {
   updatePopup({ type: 'STATUS_UPDATE', state: 'idle' });
 }
 
-async function uploadScreenshots(backendUrl, demoId, uploadUrls, screenshots) {
-  for (var i = 0; i < uploadUrls.length; i++) {
-    if (!screenshots[i]) continue;
-    try {
-      var resp = await fetch(screenshots[i]);
-      var blob = await resp.blob();
-      await fetch(uploadUrls[i], { method: 'PUT', body: blob, headers: { 'Content-Type': 'image/jpeg' } });
-    } catch (err) { console.warn('[HackDemo] Upload fail step', i); }
-  }
-  console.log('[HackDemo] Screenshots uploaded');
-  await fetch(backendUrl + '/api/demos/' + demoId + '/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-  console.log('[HackDemo] Demo confirmed');
-}
 
 function autoDescribe(events) {
   if (events.length === 0) return 'Unknown action';
@@ -280,6 +283,8 @@ async function handleResume() {
 }
 
 async function handleDelete() {
+  const s = await getSession();
+  if (!s || (s.state !== 'recording' && s.state !== 'paused')) return { success: false };
   stopRecording();
   session = null;
   clearBadge();

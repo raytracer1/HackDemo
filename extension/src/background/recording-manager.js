@@ -1,8 +1,6 @@
 let recordingTabId = null;
 let recordingStartTime = 0;
 let offscreenReady = false;
-let pauseStartTime = 0;
-let totalPauseMs = 0;
 
 export function getRecordingDuration() {
   return Date.now() - recordingStartTime;
@@ -51,14 +49,15 @@ export async function startRecording(tabId, startTime) {
       console.log('[HackDemo] START_TRACKING acknowledged');
     }
   });
+}
 
-  // Start offscreen screen recording
+// Called when blur fades — starts the actual screen recording
+export async function startScreenCapture() {
   try {
     await ensureOffscreen();
 
-    // Get stream ID for the target tab
     var streamId = await new Promise(function (resolve, reject) {
-      chrome.tabCapture.getMediaStreamId({ targetTabId: tabId }, function (id) {
+      chrome.tabCapture.getMediaStreamId({ targetTabId: recordingTabId }, function (id) {
         if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
         else resolve(id);
       });
@@ -83,17 +82,17 @@ export async function stopRecording() {
 }
 
 export function pauseRecording() {
-  pauseStartTime = Date.now();
+  if (recordingTabId) {
+    chrome.tabs.sendMessage(recordingTabId, { type: 'PAUSE_TRACKING' }).catch(function () {});
+  }
   chrome.runtime.sendMessage({ type: 'PAUSE_RECORDING' }).catch(function () {});
 }
 
 export function resumeRecording() {
-  totalPauseMs += Date.now() - pauseStartTime;
   chrome.runtime.sendMessage({ type: 'RESUME_RECORDING' }).catch(function () {});
-}
-
-export function getPauseOffset() {
-  return totalPauseMs;
+  if (recordingTabId) {
+    chrome.tabs.sendMessage(recordingTabId, { type: 'RESUME_TRACKING' }).catch(function () {});
+  }
 }
 
 /**
@@ -111,21 +110,14 @@ export async function getData() {
   });
 }
 
-export async function getFrames(timestamps) {
-  // Adjust timestamps: video time excludes paused duration
-  var offset = totalPauseMs;
-  var adjustedTimestamps = timestamps.map(function (t) { return Math.max(0, t - offset); });
-
+export async function getVideoBlob() {
   try {
-    var result = await chrome.runtime.sendMessage({
-      type: 'STOP_RECORDING',
-      timestamps: adjustedTimestamps,
-    });
+    var result = await chrome.runtime.sendMessage({ type: 'STOP_RECORDING' });
     await closeOffscreen();
-    return result.frames || [];
+    return result.dataUrl || null;
   } catch (err) {
-    console.warn('[HackDemo] Failed to get frames:', err.message);
+    console.warn('[HackDemo] Failed to get video:', err.message);
     await closeOffscreen();
-    return [];
+    return null;
   }
 }

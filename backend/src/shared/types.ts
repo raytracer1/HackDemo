@@ -53,6 +53,7 @@ export interface DemoResponse {
   id: string;
   title: string;
   status: string;
+  videoUrl?: string;
   steps: StepResponse[];
 }
 

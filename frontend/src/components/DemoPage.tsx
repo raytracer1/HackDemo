@@ -1,12 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDemoData } from '../hooks/useDemoData';
 import { synthesizeVideo, SynthesisProgress } from '../services/ffmpeg';
+import { extractFrames } from '../services/video-frames';
 import { generateMarkdown } from '../services/markdown';
 import VideoPlayer from './VideoPlayer';
 import StepTimeline from './StepTimeline';
 import DownloadBar from './DownloadBar';
-import type { SynthesisStatus } from '../shared/types';
+import type { SynthesisStatus, StepData } from '../shared/types';
 
 export default function DemoPage() {
   const { demoId } = useParams<{ demoId: string }>();
@@ -17,15 +18,41 @@ export default function DemoPage() {
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [synthesisError, setSynthesisError] = useState<string | null>(null);
+  const [frameUrls, setFrameUrls] = useState<Record<number, string>>({});
+  const [extractingFrames, setExtractingFrames] = useState(false);
+
+  // Extract frames from video when demo loads
+  useEffect(() => {
+    if (!demo || !demo.videoUrl || demo.status !== 'completed') return;
+    if (Object.keys(frameUrls).length > 0) return; // already extracted
+
+    setExtractingFrames(true);
+    const timestamps = stepsWithFrames.map((s) => s.startTime);
+    extractFrames(demo.videoUrl, timestamps)
+      .then((frames) => {
+        const map: Record<number, string> = {};
+        frames.forEach((f, i) => {
+          if (stepsWithFrames[i]) map[stepsWithFrames[i].index] = f.dataUrl;
+        });
+        setFrameUrls(map);
+      })
+      .catch((err) => console.error('Frame extraction failed:', err))
+      .finally(() => setExtractingFrames(false));
+  }, [demo?.id, demo?.status, demo?.videoUrl]);
+
+  // Merge frame URLs into steps
+  const stepsWithFrames: StepData[] = demo?.steps
+    ? demo.steps.map((s) => ({ ...s, screenshotUrl: frameUrls[s.index] || s.screenshotUrl || '' }))
+    : [];
 
   const handleGenerateVideo = useCallback(async () => {
-    if (!demo?.steps || demo.steps.length === 0) return;
+    if (!stepsWithFrames || stepsWithFrames.length === 0 || !demo?.videoUrl) return;
 
     setSynthesisStatus('loading_assets');
     setSynthesisError(null);
 
     try {
-      const blob = await synthesizeVideo(demo.steps, (progress) => {
+      const blob = await synthesizeVideo(stepsWithFrames, (progress) => {
         setSynthesisProgress(progress);
         setSynthesisStatus(progress.status as SynthesisStatus);
       });
@@ -97,7 +124,7 @@ export default function DemoPage() {
       {/* Video area */}
       <div className="mb-8">
         {videoUrl ? (
-          <VideoPlayer src={videoUrl} poster={demo.steps[0]?.screenshotUrl} />
+          <VideoPlayer src={videoUrl} poster={stepsWithFrames[0]?.screenshotUrl} />
         ) : (
           <div className="aspect-video bg-gray-900 rounded-xl border border-gray-800 flex flex-col items-center justify-center gap-4">
             {isProcessing ? (
@@ -159,8 +186,8 @@ export default function DemoPage() {
       )}
 
       {/* Step timeline */}
-      {demo.steps && demo.steps.length > 0 && (
-        <StepTimeline steps={demo.steps} />
+      {stepsWithFrames && stepsWithFrames.length > 0 && (
+        <StepTimeline steps={stepsWithFrames} />
       )}
     </div>
   );

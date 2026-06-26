@@ -2,6 +2,7 @@ export interface DemoData {
   id: string;
   title: string;
   status: string;
+  videoUrl?: string;
   steps: StepData[];
 }
 
