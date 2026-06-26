@@ -57,6 +57,13 @@ function finishStep() {
 
   chrome.runtime.sendMessage({ type: 'STEP_COUNT', count: steps.length }).catch(function () {});
 
+  // Update recording bar text if visible
+  panelSteps = steps;
+  if (panelState === 'recording' || panelState === 'paused') {
+    var label = document.querySelector('#hd-panel-inner span');
+    if (label) label.textContent = 'Recording — ' + steps.length + ' steps';
+  }
+
   currentStep = { events: [], highlights: [] };
 }
 
