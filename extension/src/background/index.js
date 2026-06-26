@@ -24,7 +24,20 @@ async function saveSession() {
 }
 
 function updatePopup(event) {
-  chrome.runtime.sendMessage(event).catch(function () {});
+  // Send to panel (if open)
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    if (tabs[0] && tabs[0].id) {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        type: 'PANEL_UPDATE',
+        state: event.state,
+        steps: event.steps,
+        demoId: event.demoId,
+        error: event.error,
+        progress: event.progress,
+        recordingDuration: event.recordingDuration,
+      }).catch(function () {});
+    }
+  });
 }
 
 function updateBadge(count) {
@@ -62,15 +75,7 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     return true;
   }
 
-  // Popup opened/closed → blur page
-  if (msg.type === 'POPUP_OPENED' || msg.type === 'POPUP_CLOSED') {
-    handlePopupVisibility(msg.type).then(function () {
-      sendResponse({ ok: true });
-    });
-    return true;
-  }
-
-  // Commands from popup
+  // Commands from popup/panel
   handleCommand(msg).then(sendResponse);
   return true;
 });
@@ -106,7 +111,6 @@ async function handleStart() {
 
   startRecording(tab.id, session.startTime);
   updateBadge(0);
-  chrome.tabs.sendMessage(tab.id, { type: 'HIDE_BLUR' }).catch(function () {});
   await saveSession();
 
   updatePopup({ type: 'STATUS_UPDATE', state: 'recording' });
@@ -301,17 +305,6 @@ async function handleStatus() {
   return { state: s.state };
 }
 
-async function handlePopupVisibility(type) {
-  try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tabs[0] && tabs[0].id) {
-      chrome.tabs.sendMessage(tabs[0].id, {
-        type: type === 'POPUP_OPENED' ? 'SHOW_BLUR' : 'HIDE_BLUR',
-      }).catch(function () {});
-    }
-  } catch (_) {}
-}
-
 async function handleClear() {
   session = null;
   clearBadge();
@@ -319,6 +312,17 @@ async function handleClear() {
   updatePopup({ type: 'STATUS_UPDATE', state: 'idle' });
   return { success: true };
 }
+
+// ── Extension icon clicked → toggle panel in page ──
+
+chrome.action.onClicked.addListener(async function (tab) {
+  if (!tab.id) return;
+  try {
+    await chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_PANEL' });
+  } catch (_) {
+    console.warn('[HackDemo] Cannot toggle panel on this page');
+  }
+});
 
 // ── Keep-alive ──
 
