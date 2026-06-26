@@ -76,13 +76,10 @@ export default async function demoRoutes(fastify: FastifyInstance) {
     const demoId = uuidv4();
     const uploadUrls: string[] = [];
 
-    // Build step items and generate upload URLs
     const stepItems: StepItem[] = [];
     for (let i = 0; i < rawSteps.length; i++) {
       const s = rawSteps[i];
       const screenshotKey = `demos/${demoId}/screenshots/${i}.jpg`;
-
-      // Generate pre-signed upload URL (extension uploads directly to R2)
       const uploadUrl = await getUploadUrl(screenshotKey, 'image/jpeg');
       uploadUrls.push(uploadUrl);
 
@@ -101,7 +98,6 @@ export default async function demoRoutes(fastify: FastifyInstance) {
       });
     }
 
-    // Insert demo with screenshot keys (not yet confirmed uploaded)
     await query(
       `INSERT INTO demos (id, title, status, steps, language, demo_type) VALUES ($1, $2, 'awaiting_upload', $3, $4, $5)`,
       [demoId, title, JSON.stringify(stepItems), language || 'English', demoType || 'product-demo']

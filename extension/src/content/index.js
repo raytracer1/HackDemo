@@ -9,7 +9,6 @@ let events = [];
 let steps = [];
 let currentStep = { events: [], highlights: [] };
 let lastStepTime = 0;
-let screenshotRequests = 0; // count of pending screenshot requests
 
 // ── Step boundary ──
 
@@ -23,39 +22,10 @@ function isStepBoundary(event, el) {
 
 // ── Screenshot request to background ──
 
-function requestScreenshot() {
-  // Hide panel during capture to avoid it appearing in screenshots
-  var panelEl = document.getElementById('hd-panel-inner');
-  var wasDisplay = panelEl ? panelEl.style.display : null;
-  if (panelEl && !wasDisplay) panelEl.style.display = 'none';
-
-  screenshotRequests++;
-  console.log('[HackDemo] CAPTURE req, pending:', screenshotRequests);
-  chrome.runtime.sendMessage({ type: 'CAPTURE' }).then(function (resp) {
-    screenshotRequests--;
-    console.log('[HackDemo] CAPTURE done, pending:', screenshotRequests);
-    if (panelEl && !wasDisplay) panelEl.style.display = '';
-  }).catch(function () {
-    screenshotRequests--;
-    console.log('[HackDemo] CAPTURE fail, pending:', screenshotRequests);
-    if (panelEl && !wasDisplay) panelEl.style.display = '';
-  });
-}
-
-async function waitForScreenshots() {
-  console.log('[HackDemo] Waiting for', screenshotRequests, 'captures...');
-  while (screenshotRequests > 0) {
-    await new Promise(function (r) { return setTimeout(r, 200); });
-  }
-  console.log('[HackDemo] All captures done');
-}
-
 // ── Step management ──
 
 function finishStep() {
   if (currentStep.events.length === 0) return;
-
-  requestScreenshot();
 
   steps.push({
     events: currentStep.events.slice(),
@@ -308,7 +278,6 @@ function hideBlur() {
       event.elementText = 'start';
       event.elementRole = 'lifecycle';
       events.push(event);
-      requestScreenshot();
       steps.push({ events: [event], highlights: [], description: 'start' });
       panelSteps = steps;
       chrome.runtime.sendMessage({ type: 'STEP_COUNT', count: steps.length }).catch(function () {});
@@ -714,22 +683,22 @@ function stopTracking() {
 async function sendData() {
   // Finish current step
   if (currentStep.events.length > 0) {
-    requestScreenshot();
     steps.push({
       events: currentStep.events.slice(),
       highlights: currentStep.highlights.slice(),
     });
   }
 
-  // Record "done" lifecycle event with screenshot
+  // Immediately hide bar + blur
+  closePanel();
+
+  // Record "done" event at click time + 500ms
   var doneEvent = createEvent('lifecycle');
+  doneEvent.timestamp += 500;
   doneEvent.elementText = 'done';
   doneEvent.elementRole = 'lifecycle';
   events.push(doneEvent);
-  requestScreenshot();
   steps.push({ events: [doneEvent], highlights: [], description: 'done' });
-
-  await waitForScreenshots();
 
   console.log('[HackDemo] Sending', steps.length, 'steps,', events.length, 'events');
 

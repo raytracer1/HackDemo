@@ -8,7 +8,9 @@
     "activeTab",
     "tabs",
     "scripting",
-    "webNavigation"
+    "webNavigation",
+    "tabCapture",
+    "offscreen"
   ],
   "host_permissions": [
     "<all_urls>"
