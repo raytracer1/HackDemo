@@ -100,7 +100,7 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
 
 async function handleCommand(cmd) {
   switch (cmd.type) {
-    case 'START_RECORDING':   return handleStart();
+    case 'START_RECORDING':   return handleStart(cmd);
     case 'DONE_RECORDING':    return handleDone();
     case 'PAUSE_RECORDING':   return handlePause();
     case 'RESUME_RECORDING':  return handleResume();
@@ -113,7 +113,7 @@ async function handleCommand(cmd) {
 
 // ── Handlers ──
 
-async function handleStart() {
+async function handleStart(cmd) {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   const tab = tabs[0];
   if (!tab || !tab.id) return { success: false, error: 'No active tab' };
@@ -125,6 +125,8 @@ async function handleStart() {
     tabId: tab.id,
     startTime: Date.now(),
     state: 'recording',
+    language: cmd.language || 'English',
+    demoType: cmd.demoType || 'product-demo',
   };
 
   startRecording(tab.id, session.startTime);
@@ -253,6 +255,8 @@ async function handleRecordingData(rawEvents, rawSteps) {
     title: 'Demo ' + new Date().toLocaleString(),
     steps: steps,
     screenshots: screenshots,
+    language: s.language || 'English',
+    demoType: s.demoType || 'product-demo',
   }).then(function (result) {
     return chrome.tabs.create({ url: frontendUrl + '/#/demo/' + result.id });
   }).catch(function (err) {

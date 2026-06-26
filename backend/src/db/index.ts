@@ -82,6 +82,8 @@ export async function getClient(): Promise<pg.Client> {
       title TEXT,
       status TEXT,
       steps JSONB,
+      language TEXT DEFAULT 'English',
+      demo_type TEXT DEFAULT 'product-demo',
       created_at TIMESTAMPTZ DEFAULT now(),
       updated_at TIMESTAMPTZ DEFAULT now()
     )

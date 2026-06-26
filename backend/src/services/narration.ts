@@ -1,9 +1,13 @@
 const DEEPSEEK_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEEPSEEK_MODEL = 'deepseek-chat';
 
-const SYSTEM_PROMPT = `You are a HackDemo narration writer. Given a list of demo steps from a hackathon project walkthrough, generate concise and engaging narration text for each step.
+function buildSystemPrompt(language?: string, demoType?: string): string {
+  var lang = language || 'English (US)';
+  var type = (demoType || 'product-demo').replace(/-/g, ' ');
+  return `You are a HackDemo narration writer. Given a list of demo steps from a "${type}" walkthrough, generate concise and engaging narration text for each step.
 
 Guidelines:
+- Write in ${lang}
 - Write exactly ONE sentence per step
 - Use present tense, second person ("You")
 - Sound energetic and hackathon-appropriate
@@ -11,6 +15,7 @@ Guidelines:
 - Keep each sentence under 20 words
 - Do NOT repeat button labels verbatim — describe the outcome
 - Return ONLY a JSON array of strings, one per step. No extra text.`;
+}
 
 interface StepInput {
   index: number;
@@ -24,7 +29,7 @@ interface StepInput {
 /**
  * Generate narration text for each demo step using DeepSeek.
  */
-export async function generateNarration(steps: StepInput[]): Promise<string[]> {
+export async function generateNarration(steps: StepInput[], language?: string, demoType?: string): Promise<string[]> {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) throw new Error('DEEPSEEK_API_KEY not configured');
 
@@ -47,7 +52,7 @@ export async function generateNarration(steps: StepInput[]): Promise<string[]> {
     body: JSON.stringify({
       model: DEEPSEEK_MODEL,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: buildSystemPrompt(language, demoType) },
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.7,

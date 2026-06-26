@@ -467,7 +467,7 @@ function renderPanel() {
     startBtn.style.cssText = 'width:100%;height:48px;background:#ef4444;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 2px 12px rgba(239,68,68,0.25);display:flex;align-items:center;justify-content:center;gap:8px;';
     startBtn.innerHTML = '<span style="width:10px;height:10px;border-radius:50%;background:#fff;display:inline-block;"></span> Start Capture';
     startBtn.onclick = function () {
-      sendCmd({ type: 'START_RECORDING' });
+      sendCmd({ type: 'START_RECORDING', language: sel.options[sel.selectedIndex]?.textContent || 'English', demoType: sel.value });
     };
     body.appendChild(startBtn);
   }

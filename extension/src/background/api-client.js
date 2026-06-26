@@ -16,7 +16,7 @@ export async function uploadDemo(backendUrl, payload) {
   var createResp = await fetch(backendUrl + '/api/demos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: payload.title, steps: stepsPayload }),
+    body: JSON.stringify({ title: payload.title, steps: stepsPayload, language: payload.language, demoType: payload.demoType }),
   });
 
   if (!createResp.ok) {

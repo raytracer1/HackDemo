@@ -8,7 +8,7 @@ import type { StepItem, DemoResponse } from '../shared/types.js';
 
 // ── Process async ──
 
-async function processDemo(demoId: string, steps: StepItem[]): Promise<void> {
+async function processDemo(demoId: string, steps: StepItem[], language?: string, demoType?: string): Promise<void> {
   try {
     console.log(`[Demo ${demoId}] Narration...`);
     await query(`UPDATE demos SET status = 'processing_narration', updated_at = now() WHERE id = $1`, [demoId]);
@@ -19,7 +19,7 @@ async function processDemo(demoId: string, steps: StepItem[]): Promise<void> {
       pageContext: { title: s.page_title, url: s.page_url },
     }));
 
-    const narrations = await generateNarration(stepInputs);
+    const narrations = await generateNarration(stepInputs, language, demoType);
     for (let i = 0; i < steps.length; i++) {
       steps[i].narration = narrations[i];
     }
@@ -34,7 +34,7 @@ async function processDemo(demoId: string, steps: StepItem[]): Promise<void> {
       steps
         .filter((s) => s.narration)
         .map(async (s) => {
-          const audio = await generateAudioForStep(s.narration!);
+          const audio = await generateAudioForStep(s.narration!, language);
           const audioKey = await uploadAudio(demoId, s.index, audio.buffer);
           return { index: s.index, key: audioKey, durationMs: audio.durationMs };
         })
@@ -67,7 +67,7 @@ export default async function demoRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/api/demos', async (request, reply) => {
     const body = request.body as any;
-    const { title, steps: rawSteps } = body || {};
+    const { title, steps: rawSteps, language, demoType } = body || {};
 
     if (!title || !rawSteps || !Array.isArray(rawSteps) || rawSteps.length === 0) {
       return reply.status(400).send({ error: 'Missing title or steps' });
@@ -103,8 +103,8 @@ export default async function demoRoutes(fastify: FastifyInstance) {
 
     // Insert demo with screenshot keys (not yet confirmed uploaded)
     await query(
-      `INSERT INTO demos (id, title, status, steps) VALUES ($1, $2, 'awaiting_upload', $3)`,
-      [demoId, title, JSON.stringify(stepItems)]
+      `INSERT INTO demos (id, title, status, steps, language, demo_type) VALUES ($1, $2, 'awaiting_upload', $3, $4, $5)`,
+      [demoId, title, JSON.stringify(stepItems), language || 'English', demoType || 'product-demo']
     );
 
     return reply.status(201).send({
@@ -128,7 +128,7 @@ export default async function demoRoutes(fastify: FastifyInstance) {
     const steps = demo.steps || [];
 
     // Start async processing
-    processDemo(id, steps).catch((err) => {
+    processDemo(id, steps, demo.language, demo.demo_type).catch((err) => {
       console.error(`[Demo ${id}] Async error:`, err);
     });
 
