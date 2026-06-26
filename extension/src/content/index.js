@@ -273,8 +273,9 @@ function showBlur() {
   if (blurEl) return;
   blurEl = document.createElement('div');
   blurEl.id = 'hackdemo-blur';
-  blurEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483640;backdrop-filter:blur(4px);background:rgba(0,0,0,0.15);pointer-events:none;';
+  blurEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483640;backdrop-filter:blur(6px);background:rgba(0,0,0,0.2);';
   document.body.appendChild(blurEl);
+  console.log('[HackDemo] Blur shown');
 }
 
 function hideBlur() {
@@ -292,7 +293,7 @@ var panelError = null;
 var panelDemoId = null;
 
 function togglePanel() {
-  if (panel) { closePanel(); hideBlur(); return; }
+  if (panel) { closePanel(); return; }
   showBlur();
   openPanel();
 }
@@ -597,12 +598,12 @@ function updatePanelState(data) {
   if (data.progress) panelProgress = data.progress;
   if (data.recordingDuration !== undefined) panelDuration = data.recordingDuration;
 
-  // Auto-close panel when recording starts
+  // Auto-close panel when recording starts (keep blur for overlay)
   if (prevState === 'idle' && panelState === 'recording') {
-    closePanel();
+    if (panel) { panel.remove(); panel = null; }
     return;
   }
-  // Close panel when done/completed
+  // Close panel + blur when done/completed
   if (panelState === 'completed' || panelState === 'idle' || panelState === 'error') {
     closePanel();
     return;
@@ -619,6 +620,7 @@ function updatePanelState(data) {
 // ── Start overlay ──
 
 function showStartOverlay() {
+  showBlur();
   var overlay = document.createElement('div');
   overlay.innerHTML = `
     <div style="
@@ -651,7 +653,7 @@ function showStartOverlay() {
     </style>
   `;
   document.body.appendChild(overlay);
-  setTimeout(function () { overlay.remove(); }, 3500);
+  setTimeout(function () { overlay.remove(); hideBlur(); }, 3500);
 }
 
 function startTracking(startTime) {
