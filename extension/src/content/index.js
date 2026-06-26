@@ -303,14 +303,16 @@ function hideBlur() {
   if (blurEl) { blurEl.remove(); blurEl = null; }
   // After start overlay fades, create a "start" step with screenshot
   if (isTracking && steps.length === 0) {
-    var event = createEvent('lifecycle', null);
-    event.elementText = 'Recording started';
-    event.elementRole = 'lifecycle';
-    events.push(event);
-    requestScreenshot();
-    steps.push({ events: [event], highlights: [] });
-    panelSteps = steps;
-    chrome.runtime.sendMessage({ type: 'STEP_COUNT', count: steps.length }).catch(function () {});
+    setTimeout(function () {
+      var event = createEvent('lifecycle', null);
+      event.elementText = 'start';
+      event.elementRole = 'lifecycle';
+      events.push(event);
+      requestScreenshot();
+      steps.push({ events: [event], highlights: [], description: 'start' });
+      panelSteps = steps;
+      chrome.runtime.sendMessage({ type: 'STEP_COUNT', count: steps.length }).catch(function () {});
+    }, 300);
   }
 }
 
@@ -705,6 +707,7 @@ function startTracking(startTime) {
 function stopTracking() {
   isTracking = false;
   removeListeners();
+  hideBlur();
   console.log('[HackDemo] Recording stopped');
 }
 
@@ -720,11 +723,11 @@ async function sendData() {
 
   // Record "done" lifecycle event with screenshot
   var doneEvent = createEvent('lifecycle');
-  doneEvent.elementText = 'Demo finished';
+  doneEvent.elementText = 'done';
   doneEvent.elementRole = 'lifecycle';
   events.push(doneEvent);
   requestScreenshot();
-  steps.push({ events: [doneEvent], highlights: [] });
+  steps.push({ events: [doneEvent], highlights: [], description: 'done' });
 
   await waitForScreenshots();
 

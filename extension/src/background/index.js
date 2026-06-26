@@ -171,7 +171,25 @@ function processCaptureQueue() {
   isCapturing = true;
   var item = captureQueue.shift();
 
+  // Hide HackDemo panel before capturing
+  chrome.scripting.executeScript({
+    target: { tabId: item.tabId },
+    func: function () {
+      var el = document.getElementById('hd-panel-inner');
+      if (el) { el.dataset.hdHide = '1'; el.style.display = 'none'; }
+    },
+  }).catch(function () {});
+
   chrome.tabs.captureVisibleTab(item.windowId, { format: 'jpeg', quality: 80 }, function (dataUrl) {
+    // Restore panel
+    chrome.scripting.executeScript({
+      target: { tabId: item.tabId },
+      func: function () {
+        var el = document.getElementById('hd-panel-inner');
+        if (el && el.dataset.hdHide === '1') { el.style.display = ''; delete el.dataset.hdHide; }
+      },
+    }).catch(function () {});
+
     isCapturing = false;
     if (chrome.runtime.lastError) {
       console.warn('[HackDemo] capture failed:', chrome.runtime.lastError.message);
@@ -194,7 +212,7 @@ async function handleCapture(sendResponse) {
     if (sendResponse) sendResponse({ ok: false });
     return;
   }
-  captureQueue.push({ windowId: tabs[0].windowId, cb: function (ok) { if (sendResponse) sendResponse({ ok: ok }); } });
+  captureQueue.push({ windowId: tabs[0].windowId, tabId: tabs[0].id, cb: function (ok) { if (sendResponse) sendResponse({ ok: ok }); } });
   processCaptureQueue();
   return true;
 }
@@ -222,7 +240,7 @@ async function handleRecordingData(rawEvents, rawSteps) {
       events: rs.events,
       startTime: startTime,
       endTime: endTime,
-      description: autoDescribe(rs.events),
+      description: rs.description || autoDescribe(rs.events),
       actionType: autoClassify(rs.events),
       screenshot: screenshot,
       highlights: rs.highlights || [],
@@ -274,6 +292,7 @@ function autoDescribe(events) {
   if (events.length === 0) return 'Unknown action';
   if (events.length === 1) {
     var e = events[0];
+    if (e.type === 'lifecycle') return e.description || e.elementText || e.type;
     switch (e.type) {
       case 'click':      return 'Clicked "' + e.elementText + '"';
       case 'input':      return 'Entered text in "' + e.elementText + '"';
