@@ -24,14 +24,21 @@ function isStepBoundary(event, el) {
 // ── Screenshot request to background ──
 
 function requestScreenshot() {
+  // Hide panel during capture to avoid it appearing in screenshots
+  var panelEl = document.getElementById('hd-panel-inner');
+  var wasDisplay = panelEl ? panelEl.style.display : null;
+  if (panelEl && !wasDisplay) panelEl.style.display = 'none';
+
   screenshotRequests++;
   console.log('[HackDemo] CAPTURE req, pending:', screenshotRequests);
   chrome.runtime.sendMessage({ type: 'CAPTURE' }).then(function (resp) {
     screenshotRequests--;
     console.log('[HackDemo] CAPTURE done, pending:', screenshotRequests);
+    if (panelEl && !wasDisplay) panelEl.style.display = '';
   }).catch(function () {
     screenshotRequests--;
     console.log('[HackDemo] CAPTURE fail, pending:', screenshotRequests);
+    if (panelEl && !wasDisplay) panelEl.style.display = '';
   });
 }
 
@@ -174,6 +181,20 @@ function getBoundingRect(el) {
 
 function createEvent(type, el, extra) {
   var target = el || document.body;
+  if (!el) {
+    return {
+      id: crypto.randomUUID(),
+      timestamp: Date.now() - recordingStartTime,
+      type: type,
+      pageTitle: document.title,
+      url: window.location.href,
+      elementText: '',
+      elementRole: '',
+      boundingRect: null,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      ...(extra || {}),
+    };
+  }
   return {
     id: crypto.randomUUID(),
     timestamp: Date.now() - recordingStartTime,
@@ -280,6 +301,17 @@ function showBlur() {
 
 function hideBlur() {
   if (blurEl) { blurEl.remove(); blurEl = null; }
+  // After start overlay fades, create a "start" step with screenshot
+  if (isTracking && steps.length === 0) {
+    var event = createEvent('lifecycle', null);
+    event.elementText = 'Recording started';
+    event.elementRole = 'lifecycle';
+    events.push(event);
+    requestScreenshot();
+    steps.push({ events: [event], highlights: [] });
+    panelSteps = steps;
+    chrome.runtime.sendMessage({ type: 'STEP_COUNT', count: steps.length }).catch(function () {});
+  }
 }
 
 // ── Floating panel (Guidde-style) ──
@@ -685,6 +717,14 @@ async function sendData() {
       highlights: currentStep.highlights.slice(),
     });
   }
+
+  // Record "done" lifecycle event with screenshot
+  var doneEvent = createEvent('lifecycle');
+  doneEvent.elementText = 'Demo finished';
+  doneEvent.elementRole = 'lifecycle';
+  events.push(doneEvent);
+  requestScreenshot();
+  steps.push({ events: [doneEvent], highlights: [] });
 
   await waitForScreenshots();
 
