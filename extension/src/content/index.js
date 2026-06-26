@@ -220,6 +220,44 @@ function removeListeners() {
 
 // ── Lifecycle ──
 
+// ── Start overlay ──
+
+function showStartOverlay() {
+  var overlay = document.createElement('div');
+  overlay.innerHTML = `
+    <div style="
+      position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483647;
+      display:flex;align-items:center;justify-content:center;
+      pointer-events:none;
+    ">
+      <div id="hackdemo-start-hint" style="
+        background:#1f2937;color:#f3f4f6;padding:24px 40px;border-radius:16px;
+        font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:18px;
+        font-weight:600;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.4);
+        animation:hdfade 3s ease forwards;opacity:0;
+      ">
+        <div style="display:flex;align-items:center;gap:10px;justify-content:center;">
+          <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+          Recording started
+        </div>
+        <div style="font-size:13px;color:#9ca3af;margin-top:8px;font-weight:400;">
+          Perform your demo — click Done in the extension when finished
+        </div>
+      </div>
+    </div>
+    <style>
+      @keyframes hdfade {
+        0%   { opacity:0; transform:translateY(-10px); }
+        15%  { opacity:1; transform:translateY(0); }
+        70%  { opacity:1; transform:translateY(0); }
+        100% { opacity:0; transform:translateY(-5px); }
+      }
+    </style>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(function () { overlay.remove(); }, 3500);
+}
+
 function startTracking(startTime) {
   recordingStartTime = startTime;
   isTracking = true;
@@ -229,6 +267,7 @@ function startTracking(startTime) {
   lastStepTime = 0;
 
   setupListeners();
+  showStartOverlay();
   chrome.runtime.sendMessage({ type: 'STEP_COUNT', count: 0 }).catch(function () {});
   console.log('[HackDemo] Recording started');
 }
