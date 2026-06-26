@@ -1,4 +1,4 @@
-import { SESSION_KEY, SETTINGS_KEY } from '../shared/constants.js';
+import { SESSION_KEY, SETTINGS_KEY, DEFAULT_BACKEND_URL, DEFAULT_FRONTEND_URL } from '../shared/constants.js';
 import { startRecording, stopRecording, getData, getRecordingDuration } from './recording-manager.js';
 import { generateSteps } from './step-generator.js';
 import { uploadDemo } from './api-client.js';
@@ -195,8 +195,8 @@ async function handleRecordingData(rawEvents, rawSteps) {
 
   // Fire upload in background, reset to idle immediately
   const stored = await chrome.storage.local.get(SETTINGS_KEY);
-  const backendUrl = (stored[SETTINGS_KEY] && stored[SETTINGS_KEY].backendUrl) || 'http://localhost:3001';
-  const frontendUrl = backendUrl.replace('localhost:3001', 'localhost:5173');
+  const backendUrl = (stored[SETTINGS_KEY] && stored[SETTINGS_KEY].backendUrl) || DEFAULT_BACKEND_URL;
+  const frontendUrl = DEFAULT_FRONTEND_URL;
 
   uploadDemo(backendUrl, {
     title: 'Demo ' + new Date().toLocaleString(),
