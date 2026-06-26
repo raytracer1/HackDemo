@@ -64,17 +64,73 @@ function finishStep() {
 
 function getMeaningfulText(el) {
   if (!el) return '';
+  var text = '';
+
+  // Priority 1: Explicit semantic attributes
+  text = el.getAttribute('aria-label') || el.getAttribute('alt') || el.getAttribute('title') || el.getAttribute('data-tooltip');
+  if (text) return text.trim();
+
+  // Priority 2: Input-specific
   if (el.placeholder) return el.placeholder;
-  var label = el.getAttribute('aria-label');
-  if (label) return label;
+  if (el.name && el.name.length > 1) return el.name;
   if (el.labels && el.labels[0] && el.labels[0].textContent) return el.labels[0].textContent.trim();
-  if (el.textContent) { var t = el.textContent.trim(); if (t.length <= 80) return t; }
-  if (el.name) return el.name;
+
+  // Priority 3: Direct text content (buttons, links, etc.)
+  if (el.textContent) {
+    text = el.textContent.trim();
+    if (text.length > 0 && text.length <= 80) return text;
+  }
+
+  // Priority 4: Climb up to find meaningful parent text
+  var parent = el.parentElement;
+  var depth = 0;
+  while (parent && depth < 3) {
+    // Check parent's aria-label
+    var pl = parent.getAttribute('aria-label');
+    if (pl) return pl.trim();
+
+    // Check if parent is a list item or section with a heading
+    var heading = parent.querySelector('h1, h2, h3, h4, h5, h6, strong, label');
+    if (heading && heading.textContent) {
+      return heading.textContent.trim().slice(0, 80);
+    }
+
+    parent = parent.parentElement;
+    depth++;
+  }
+
+  // Priority 5: href for links
+  if (el.tagName === 'A' || el.closest('a')) {
+    var link = el.tagName === 'A' ? el : el.closest('a');
+    if (link) {
+      var href = link.getAttribute('href');
+      if (href && href.length > 1 && href !== '#') return href;
+    }
+  }
+
+  // Last resort
   return el.tagName.toLowerCase();
 }
 
 function getRole(el) {
-  return el.getAttribute('role') || el.tagName.toLowerCase();
+  // ARIA role
+  var role = el.getAttribute('role');
+  if (role) return role;
+
+  var tag = el.tagName.toLowerCase();
+  if (tag === 'a') return 'link';
+  if (tag === 'input') {
+    var type = (el.type || 'text').toLowerCase();
+    if (type === 'submit') return 'submit_button';
+    if (type === 'button') return 'button';
+    return type + '_input';
+  }
+  if (tag === 'button') return 'button';
+  if (tag === 'textarea') return 'text_input';
+  if (tag === 'select') return 'dropdown';
+  if (tag === 'img') return 'image';
+  if (tag === 'form') return 'form';
+  return tag;
 }
 
 function getBoundingRect(el) {
@@ -105,7 +161,7 @@ function recordEvent(type, el, extra) {
   if (!el) return;
 
   var event = createEvent(type, el, extra);
-  console.log('[HackDemo]', type + ':', event.elementText);
+  console.log('[HackDemo] event:', JSON.stringify({ type: event.type, elementText: event.elementText, elementRole: event.elementRole }));
 
   events.push(event);
   currentStep.events.push(event);
@@ -134,6 +190,9 @@ function handleClick(e) {
 function handleChange(e) {
   var el = e.target;
   if (!el) return;
+  // Skip file, hidden, checkbox, radio inputs
+  var type = (el.type || '').toLowerCase();
+  if (type === 'file' || type === 'hidden' || type === 'checkbox' || type === 'radio') return;
   var tag = el.tagName.toLowerCase();
   if (tag === 'input' || tag === 'textarea' || tag === 'select') {
     recordEvent('input', el, { inputValue: el.value });
