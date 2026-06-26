@@ -184,7 +184,7 @@ function processCaptureQueue() {
       }
       if (item.cb) item.cb(true);
     }
-    setTimeout(processCaptureQueue, 600);
+    setTimeout(processCaptureQueue, 1000);
   });
 }
 
