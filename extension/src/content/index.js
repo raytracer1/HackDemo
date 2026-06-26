@@ -220,6 +220,22 @@ function removeListeners() {
 
 // ── Lifecycle ──
 
+// ── Page blur (popup open) ──
+
+var blurEl = null;
+
+function showBlur() {
+  if (blurEl) return;
+  blurEl = document.createElement('div');
+  blurEl.id = 'hackdemo-blur';
+  blurEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;backdrop-filter:blur(4px);background:rgba(0,0,0,0.15);pointer-events:none;';
+  document.body.appendChild(blurEl);
+}
+
+function hideBlur() {
+  if (blurEl) { blurEl.remove(); blurEl = null; }
+}
+
 // ── Start overlay ──
 
 function showStartOverlay() {
@@ -303,6 +319,14 @@ async function sendData() {
 
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
   switch (msg.type) {
+    case 'SHOW_BLUR':
+      showBlur();
+      sendResponse({ ok: true });
+      break;
+    case 'HIDE_BLUR':
+      hideBlur();
+      sendResponse({ ok: true });
+      break;
     case 'START_TRACKING':
       startTracking(msg.recordingStartTime);
       sendResponse({ ok: true });

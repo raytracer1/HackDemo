@@ -62,6 +62,14 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     return true;
   }
 
+  // Popup opened/closed → blur page
+  if (msg.type === 'POPUP_OPENED' || msg.type === 'POPUP_CLOSED') {
+    handlePopupVisibility(msg.type).then(function () {
+      sendResponse({ ok: true });
+    });
+    return true;
+  }
+
   // Commands from popup
   handleCommand(msg).then(sendResponse);
   return true;
@@ -98,6 +106,7 @@ async function handleStart() {
 
   startRecording(tab.id, session.startTime);
   updateBadge(0);
+  chrome.tabs.sendMessage(tab.id, { type: 'HIDE_BLUR' }).catch(function () {});
   await saveSession();
 
   updatePopup({ type: 'STATUS_UPDATE', state: 'recording' });
@@ -290,6 +299,17 @@ async function handleStatus() {
     updatePopup({ type: 'STEPS_READY', steps: s.steps });
   }
   return { state: s.state };
+}
+
+async function handlePopupVisibility(type) {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs[0] && tabs[0].id) {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        type: type === 'POPUP_OPENED' ? 'SHOW_BLUR' : 'HIDE_BLUR',
+      }).catch(function () {});
+    }
+  } catch (_) {}
 }
 
 async function handleClear() {
