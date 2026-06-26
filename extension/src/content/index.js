@@ -69,6 +69,27 @@ function finishStep() {
   currentStep = { events: [], highlights: [] };
 }
 
+// ── Sensitive field detection ──
+
+function isSensitiveField(el) {
+  if (!el) return false;
+  var tag = el.tagName.toLowerCase();
+  var type = (el.type || '').toLowerCase();
+  // Password fields
+  if (tag === 'input' && type === 'password') return true;
+  // Email fields (may contain PII)
+  if (tag === 'input' && type === 'email') return true;
+  // Credit card / sensitive named fields
+  var name = (el.name || '').toLowerCase();
+  var id = (el.id || '').toLowerCase();
+  var placeholder = (el.placeholder || '').toLowerCase();
+  var keywords = ['password', 'secret', 'token', 'api_key', 'apikey', 'credit', 'card', 'ssn', 'pin', 'passcode', 'username', 'user', 'login', 'email', 'phone', 'mobile', 'address', 'name'];
+  for (var i = 0; i < keywords.length; i++) {
+    if (name.includes(keywords[i]) || id.includes(keywords[i]) || placeholder.includes(keywords[i])) return true;
+  }
+  return false;
+}
+
 // ── Helpers ──
 
 function getMeaningfulText(el) {
@@ -184,6 +205,18 @@ function recordEvent(type, el, extra) {
       elementText: event.elementText,
       elementRole: event.elementRole,
       boundingRect: event.boundingRect,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    });
+  }
+
+  // Track sensitive fields for blurring
+  if (el && isSensitiveField(el)) {
+    currentStep.highlights.push({
+      type: 'sensitive',
+      elementText: '',
+      elementRole: el.tagName.toLowerCase(),
+      boundingRect: getBoundingRect(el),
+      viewport: { width: window.innerWidth, height: window.innerHeight },
     });
   }
 

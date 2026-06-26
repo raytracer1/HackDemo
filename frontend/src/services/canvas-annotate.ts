@@ -63,6 +63,26 @@ export async function annotateScreenshot(
       for (const h of highlights) {
         if (!h.boundingRect || h.boundingRect.width <= 0) continue;
 
+        // Sensitive field → blur overlay
+        if (h.type === 'sensitive') {
+          const sx = h.boundingRect.left * scaleX;
+          const sy = h.boundingRect.top * scaleY;
+          const sw = h.boundingRect.width * scaleX;
+          const sh = h.boundingRect.height * scaleY;
+
+          ctx.save();
+          ctx.filter = 'blur(20px)';
+          ctx.beginPath();
+          ctx.rect(sx, sy, sw, sh);
+          ctx.clip();
+          ctx.drawImage(img, sx, sy, sw, sh, sx, sy, sw, sh);
+          ctx.restore();
+          // Dark overlay on top
+          ctx.fillStyle = 'rgba(0,0,0,0.4)';
+          ctx.fillRect(sx, sy, sw, sh);
+          continue;
+        }
+
         const c = colorsFor(h);
 
         let x = h.boundingRect.left * scaleX;
