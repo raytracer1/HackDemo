@@ -162,6 +162,7 @@ function createEvent(type, el, extra) {
     elementText: el ? getMeaningfulText(target) : '',
     elementRole: getRole(target),
     boundingRect: el ? getBoundingRect(target) : null,
+    viewport: { width: window.innerWidth, height: window.innerHeight },
   };
 }
 

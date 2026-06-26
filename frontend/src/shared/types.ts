@@ -14,6 +14,7 @@ export interface Highlight {
     width: number; height: number;
     top: number; left: number;
   } | null;
+  viewport?: { width: number; height: number };
 }
 
 export interface StepData {

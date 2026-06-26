@@ -53,9 +53,10 @@ export async function annotateScreenshot(
       // Draw original screenshot
       ctx.drawImage(img, 0, 0);
 
-      // Scale: screenshot dimensions vs viewport
-      const viewportW = window.innerWidth || 1280;
-      const viewportH = window.innerHeight || 720;
+      // Scale: use viewport from first highlight (at capture time), fallback to window
+      const firstViewport = (highlights[0] as any)?.viewport;
+      const viewportW = firstViewport?.width || window.innerWidth || 1280;
+      const viewportH = firstViewport?.height || window.innerHeight || 720;
       const scaleX = canvas.width / viewportW;
       const scaleY = canvas.height / viewportH;
 
