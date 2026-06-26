@@ -25,20 +25,22 @@ function isStepBoundary(event, el) {
 
 function requestScreenshot() {
   screenshotRequests++;
+  console.log('[HackDemo] CAPTURE req, pending:', screenshotRequests);
   chrome.runtime.sendMessage({ type: 'CAPTURE' }).then(function (resp) {
     screenshotRequests--;
+    console.log('[HackDemo] CAPTURE done, pending:', screenshotRequests);
   }).catch(function () {
     screenshotRequests--;
+    console.log('[HackDemo] CAPTURE fail, pending:', screenshotRequests);
   });
 }
 
 async function waitForScreenshots() {
-  // Wait up to 2 seconds for pending screenshots
-  var waited = 0;
-  while (screenshotRequests > 0 && waited < 2000) {
-    await new Promise(function (r) { return setTimeout(r, 100); });
-    waited += 100;
+  console.log('[HackDemo] Waiting for', screenshotRequests, 'captures...');
+  while (screenshotRequests > 0) {
+    await new Promise(function (r) { return setTimeout(r, 200); });
   }
+  console.log('[HackDemo] All captures done');
 }
 
 // ── Step management ──

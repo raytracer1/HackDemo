@@ -72,11 +72,9 @@ function clearBadge() {
 // ── Command router ──
 
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-  // Screenshot request from content script
+  // Screenshot request from content script (waits for actual capture)
   if (msg.type === 'CAPTURE') {
-    handleCapture().then(function () {
-      sendResponse({ ok: true });
-    });
+    handleCapture(sendResponse);
     return true;
   }
 
@@ -163,21 +161,40 @@ async function handleDone() {
   return { success: true };
 }
 
-async function handleCapture() {
-  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tabs[0] || !tabs[0].id) return;
+var captureQueue = [];
+var isCapturing = false;
 
-  chrome.tabs.captureVisibleTab(tabs[0].windowId, { format: 'jpeg', quality: 80 }, function (dataUrl) {
+function processCaptureQueue() {
+  if (isCapturing || captureQueue.length === 0) return;
+  isCapturing = true;
+  var item = captureQueue.shift();
+
+  chrome.tabs.captureVisibleTab(item.windowId, { format: 'jpeg', quality: 80 }, function (dataUrl) {
+    isCapturing = false;
     if (chrome.runtime.lastError) {
-      console.warn('[HackDemo] captureVisibleTab failed:', chrome.runtime.lastError.message);
-      return;
+      console.warn('[HackDemo] capture failed:', chrome.runtime.lastError.message);
+      if (item.cb) item.cb(false);
+    } else {
+      if (session) {
+        session.screenshots = session.screenshots || [];
+        session.screenshots.push(dataUrl);
+        saveSession();
+      }
+      if (item.cb) item.cb(true);
     }
-    if (session) {
-      session.screenshots = session.screenshots || [];
-      session.screenshots.push(dataUrl);
-      saveSession();
-    }
+    setTimeout(processCaptureQueue, 600);
   });
+}
+
+async function handleCapture(sendResponse) {
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tabs[0] || !tabs[0].id) {
+    if (sendResponse) sendResponse({ ok: false });
+    return;
+  }
+  captureQueue.push({ windowId: tabs[0].windowId, cb: function (ok) { if (sendResponse) sendResponse({ ok: ok }); } });
+  processCaptureQueue();
+  return true;
 }
 
 async function handleRecordingData(rawEvents, rawSteps) {
