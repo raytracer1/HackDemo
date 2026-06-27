@@ -38,6 +38,15 @@ function waitForDomStable() {
   });
 }
 
+// Update last step's stableTime on scroll (if already set)
+window.addEventListener('scroll', function () {
+  if (!isActive || steps.length === 0) return;
+  var last = steps[steps.length - 1];
+  if (last && last.stableTime) {
+    last.stableTime = Date.now() - recordingStartTime;
+  }
+}, { passive: true });
+
 // ── Step management ──
 
 // Email / phone regex patterns
