@@ -193,7 +193,12 @@ function getMp3Duration(buf: Buffer): number {
 var LANG_MAP: Record<string, string> = {
   'English (US)': 'en', 'English (UK)': 'en',
   'Chinese (Mandarin)': 'zh-CN', 'Chinese (Cantonese)': 'zh-CN',
-  'Japanese': 'ja', 'Spanish': 'es',
+  'Japanese': 'ja', 'Korean': 'ko',
+  'Spanish': 'es', 'French': 'fr', 'German': 'de',
+  'Portuguese': 'pt', 'Italian': 'it', 'Russian': 'ru',
+  'Arabic': 'ar', 'Hindi': 'hi', 'Dutch': 'nl',
+  'Polish': 'pl', 'Turkish': 'tr', 'Swedish': 'sv',
+  'Thai': 'th', 'Vietnamese': 'vi', 'Indonesian': 'id',
 };
 
 function getLang(language?: string): string { return LANG_MAP[language || 'English (US)'] || 'en'; }
