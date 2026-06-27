@@ -1,38 +1,10 @@
 import { FastifyInstance } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
 import { query } from '../db/index.js';
-import { uploadAudio, getUploadUrl, getR2Url } from '../services/storage.js';
-import { generateNarration } from '../services/narration.js';
-import { generateAudioForStep } from '../services/voiceover.js';
+import { getUploadUrl, getR2Url, uploadAudio } from '../services/storage.js';
 import type { StepItem, DemoResponse } from '../shared/types.js';
 
 // ── Process async ──
-
-async function processNarration(demoId: string, steps: StepItem[], language?: string, demoType?: string): Promise<StepItem[]> {
-  console.log(`[Demo ${demoId}] Narration...`);
-  await query(`UPDATE demos SET status = 'processing_narration', updated_at = now() WHERE id = $1`, [demoId]);
-  const inputs = steps.map(s => ({ index: s.index, description: s.description, pageContext: { title: s.page_title, url: s.page_url } }));
-  const narrations = await generateNarration(inputs, language, demoType);
-  for (let i = 0; i < steps.length; i++) steps[i].narration = narrations[i];
-  await query(`UPDATE demos SET status = 'narration_done', steps = $1, updated_at = now() WHERE id = $2`, [JSON.stringify(steps), demoId]);
-  console.log(`[Demo ${demoId}] Narration done`);
-  return steps;
-}
-
-async function processAudio(demoId: string, steps: StepItem[], language?: string): Promise<void> {
-  console.log(`[Demo ${demoId}] Voiceover...`);
-  await query(`UPDATE demos SET status = 'processing_audio', updated_at = now() WHERE id = $1`, [demoId]);
-  const results = await Promise.all(
-    steps.filter(s => s.narration).map(async s => {
-      const audio = await generateAudioForStep(s.narration!, language);
-      const key = await uploadAudio(demoId, s.index, audio.buffer);
-      return { index: s.index, key, durationMs: audio.durationMs };
-    })
-  );
-  for (const r of results) { steps[r.index].audio_key = r.key; steps[r.index].duration_ms = r.durationMs; }
-  await query(`UPDATE demos SET status = 'completed', steps = $1, updated_at = now() WHERE id = $2`, [JSON.stringify(steps), demoId]);
-  console.log(`[Demo ${demoId}] Complete!`);
-}
 
 // ── Routes ──
 
@@ -97,31 +69,60 @@ export default async function demoRoutes(fastify: FastifyInstance) {
     const demo = result.rows[0];
     const steps = demo.steps || [];
 
-    return reply.send({ id, status: 'uploaded' });
+    // Publish job to Ably worker
+    try {
+      const Ably = await import('ably');
+      const ably = new Ably.Realtime({ key: process.env.ABLY_API_KEY || '' });
+      await ably.channels.get('hackdemo-jobs').publish('new-demo', { demoId: id });
+      ably.close();
+    } catch (_) {}
+
+    return reply.send({ id, status: 'processing' });
   });
 
-  fastify.post('/api/demos/:id/process-narration', async (request, reply) => {
+  /**
+   * PUT /api/demos/:id — internal: worker updates status/steps
+   */
+  fastify.put('/api/demos/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const result = await query(`SELECT * FROM demos WHERE id = $1`, [id]);
-    if (!result.rows?.length) return reply.status(404).send({ error: 'Demo not found' });
-    const demo = result.rows[0];
-    if (demo.status === 'narration_done' || demo.status === 'completed') return reply.send({ id, status: demo.status });
-    try {
-      await processNarration(id, demo.steps || [], demo.language, demo.demo_type);
-      return reply.send({ id, status: 'narration_done' });
-    } catch (err: any) { return reply.status(500).send({ error: err.message }); }
+    const body = request.body as any;
+    if (!body || !body.status) return reply.status(400).send({ error: 'Missing status' });
+
+    if (body.steps) {
+      await query(`UPDATE demos SET status = $1, steps = $2, updated_at = now() WHERE id = $3`, [body.status, JSON.stringify(body.steps), id]);
+    } else {
+      await query(`UPDATE demos SET status = $1, updated_at = now() WHERE id = $2`, [body.status, id]);
+    }
+    return reply.send({ id, status: body.status });
   });
 
-  fastify.post('/api/demos/:id/process-audio', async (request, reply) => {
+  /**
+   * POST /api/demos/:id/audio — worker uploads audio for a step
+   * Body: { index: number, audio: base64 string, duration_ms: number }
+   */
+  fastify.post('/api/demos/:id/audio', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const result = await query(`SELECT * FROM demos WHERE id = $1`, [id]);
-    if (!result.rows?.length) return reply.status(404).send({ error: 'Demo not found' });
-    const demo = result.rows[0];
-    if (demo.status === 'completed') return reply.send({ id, status: 'completed' });
-    try {
-      await processAudio(id, demo.steps || [], demo.language);
-      return reply.send({ id, status: 'completed' });
-    } catch (err: any) { return reply.status(500).send({ error: err.message }); }
+    const body = request.body as any;
+    if (!body || body.index === undefined || !body.audio) {
+      return reply.status(400).send({ error: 'Missing index or audio' });
+    }
+    const buffer = Buffer.from(body.audio, 'base64');
+    const key = await uploadAudio(id, body.index, buffer);
+    return reply.send({ key, duration_ms: body.duration_ms || 0 });
+  });
+
+  /**
+   * GET /api/demos?status=pending — worker polls for unprocessed demos
+   */
+  fastify.get('/api/demos', async (request, reply) => {
+    const status = (request.query as any).status;
+    if (status === 'pending') {
+      const result = await query(
+        `SELECT id, status FROM demos WHERE status IN ('processing', 'narration_done') ORDER BY created_at ASC LIMIT 10`,
+      );
+      return reply.send(result.rows || []);
+    }
+    return reply.status(400).send({ error: 'Use /api/demos/:id' });
   });
 
   /**

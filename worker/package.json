@@ -1,0 +1,19 @@
+{
+  "name": "hackdemo-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "ably": "^2.0.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.15.4",
+    "typescript": "^5.5.3",
+    "@types/node": "^20.14.2"
+  }
+}

@@ -18,58 +18,20 @@ export function useDemoData(demoId: string): UseDemoDataResult {
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
     let stopped = false;
 
-    async function api(path: string, method = 'GET') {
-      const resp = await fetch(`${BACKEND_URL}${path}`, { method });
-      if (!resp.ok) throw new Error(`API ${resp.status}`);
-      return resp.json();
-    }
-
-    async function init() {
+    async function poll() {
       try {
-        // Step 1: Fetch demo
-        let data = await api(`/api/demos/${demoId}`);
-        setDemo(data);
-
-        // Step 2: If uploaded, trigger narration
-        if (data.status === 'uploaded' || data.status === 'awaiting_upload') {
-          data = await api(`/api/demos/${demoId}/process-narration`, 'POST');
-          setDemo(data);
+        const resp = await fetch(`${BACKEND_URL}/api/demos/${demoId}`);
+        const data = await resp.json();
+        if (!stopped) setDemo(data);
+        if (data.status === 'completed' || data.status === 'failed') {
+          if (!stopped) setLoading(false);
+          return;
         }
-
-        // Step 3: If narration done, trigger audio
-        if (data.status === 'narration_done' || data.status === 'processing_narration') {
-          // Re-fetch to get latest steps with narration
-          data = await api(`/api/demos/${demoId}`);
-          if (data.status === 'narration_done') {
-            data = await api(`/api/demos/${demoId}/process-audio`, 'POST');
-            setDemo(data);
-          }
-        }
-
-        // Step 4: Poll until completed
-        if (data.status !== 'completed' && data.status !== 'failed') {
-          const interval = setInterval(async () => {
-            if (stopped) { clearInterval(interval); return; }
-            try {
-              const d = await api(`/api/demos/${demoId}`);
-              setDemo(d);
-              if (d.status === 'completed' || d.status === 'failed') {
-                clearInterval(interval);
-                setLoading(false);
-              }
-            } catch { /* keep polling */ }
-          }, 3000);
-          return; // Don't setLoading(false) yet
-        }
-
-        setLoading(false);
-      } catch (err: any) {
-        if (!stopped) setError(err.message);
-        setLoading(false);
-      }
+      } catch {}
+      setTimeout(() => { if (!stopped) poll(); }, 3000);
     }
 
-    init();
+    poll();
     return () => { stopped = true; };
   }, [demoId]);
 
