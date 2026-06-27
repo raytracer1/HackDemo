@@ -66,21 +66,17 @@ export async function synthesizeVideo(
       new Blob([originalData as BlobPart], { type: 'image/png' })
     );
 
-    // Annotate with highlights (if any)
+    // Add subtitles (narration), skip UI highlights
     let finalDataUrl = originalDataUrl;
-    if (step.highlights && step.highlights.length > 0) {
+    if (step.narration) {
       try {
-        finalDataUrl = await annotateScreenshot(originalDataUrl, step.highlights, step.narration);
+        finalDataUrl = await annotateScreenshot(originalDataUrl, [], step.narration);
       } catch (e) {
-        // Fall back to original if annotation fails
-        console.warn('Annotation failed for step', i, e);
+        console.warn('Subtitle failed for step', i, e);
       }
     }
 
-    // Write annotated (or original) screenshot to FFmpeg
     await ffmpeg.writeFile(`step_${i}.png`, await fetchFile(finalDataUrl));
-
-    // Clean up blob URLs
     URL.revokeObjectURL(originalDataUrl);
     if (finalDataUrl !== originalDataUrl) URL.revokeObjectURL(finalDataUrl);
 
