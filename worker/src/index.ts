@@ -26,7 +26,7 @@ async function generateNarration(steps: any[], language?: string, demoType?: str
   const type = (demoType || 'product-demo').replace(/-/g, ' ');
 
   const userPrompt = `Here are ${steps.length} demo steps. Generate exactly ${steps.length} narration sentences.\n\n` +
-    JSON.stringify(steps.map((s: any) => ({ index: s.index, description: s.description, page: s.page_title })), null, 2) +
+    JSON.stringify(steps.map((s: any) => ({ index: s.index, description: s.description, page: s.pageTitle })), null, 2) +
     `\n\nReturn a JSON array of exactly ${steps.length} strings.`;
 
   const resp = await fetch('https://api.deepseek.com/v1/chat/completions', {

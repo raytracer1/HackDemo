@@ -36,8 +36,8 @@ export default async function demoRoutes(fastify: FastifyInstance) {
         audio_key: null,
         narration: null,
         duration_ms: null,
-        start_time: s.startTime || 0,
-        end_time: s.endTime || 0,
+        startTime: s.startTime || 0,
+        endTime: s.endTime || 0,
         page_url: s.pageContext?.url || '',
         page_title: s.pageContext?.title || '',
         highlights: s.highlights || [],
@@ -147,8 +147,8 @@ export default async function demoRoutes(fastify: FastifyInstance) {
         screenshotUrl: '',
         audioUrl: step.audio_key ? await getR2Url(step.audio_key) : null,
         durationMs: step.duration_ms,
-        startTime: step.start_time,
-        endTime: step.end_time,
+        startTime: step.startTime || 0,
+        endTime: step.endTime || 0,
         pageUrl: step.page_url,
         pageTitle: step.page_title,
         highlights: step.highlights || [],
@@ -164,6 +164,8 @@ export default async function demoRoutes(fastify: FastifyInstance) {
       status: demo.status,
       videoUrl,
       steps,
+      language: demo.language || 'English (US)',
+      demoType: demo.demo_type || 'product-demo',
     };
 
     return reply.send(response);

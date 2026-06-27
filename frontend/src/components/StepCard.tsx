@@ -7,6 +7,7 @@ interface Props {
 }
 
 function formatTime(ms: number): string {
+  if (!ms || isNaN(ms)) return '0s';
   const sec = Math.floor(ms / 1000);
   if (sec < 60) return `${sec}s`;
   const min = Math.floor(sec / 60);
@@ -51,9 +52,9 @@ export default function StepCard({ step, index, total }: Props) {
               <span className="text-xs text-gray-500">
                 {formatTime(step.startTime)} – {formatTime(step.endTime)}
               </span>
-              {step.durationMs && (
+              {(step.durationMs || (step as any).duration_ms) && (
                 <span className="text-xs text-gray-600">
-                  ({formatTime(step.durationMs)})
+                  ({formatTime(step.durationMs || (step as any).duration_ms)})
                 </span>
               )}
             </div>

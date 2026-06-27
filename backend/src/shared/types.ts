@@ -33,8 +33,8 @@ export interface StepItem {
   screenshot_key: string;
   audio_key: string | null;
   duration_ms: number | null;
-  start_time: number;
-  end_time: number;
+  startTime: number;
+  endTime: number;
   page_url: string;
   page_title: string;
   highlights: Highlight[];
@@ -55,6 +55,8 @@ export interface DemoResponse {
   status: string;
   videoUrl?: string;
   steps: StepResponse[];
+  language?: string;
+  demoType?: string;
 }
 
 export interface StepResponse {
