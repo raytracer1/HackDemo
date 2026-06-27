@@ -1,8 +1,8 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
-const CORE_URL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js';
-const WASM_URL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm';
+const CORE_URL = '/ffmpeg/ffmpeg-core.js';
+const WASM_URL = '/ffmpeg/ffmpeg-core.wasm';
 
 /**
  * Extract JPEG frames from a video at given timestamps (in ms).
