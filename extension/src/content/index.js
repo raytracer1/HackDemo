@@ -297,6 +297,7 @@ function hideBlur() {
 
 var panel = null;
 var panelState = 'idle';
+var selectedLanguage = 'English (US)';
 var panelDuration = 0;
 var panelSteps = [];
 var panelProgress = { phase: '', percent: 0 };
@@ -451,6 +452,8 @@ function showSettingsInPanel() {
   ['English (US)', 'English (UK)', 'Chinese (Mandarin)', 'Chinese (Cantonese)', 'Japanese', 'Spanish'].forEach(function (l) {
     var o = document.createElement('option'); o.textContent = l; sel.appendChild(o);
   });
+  sel.value = selectedLanguage;
+  sel.onchange = function () { selectedLanguage = sel.value; };
   langRow.appendChild(sel);
   body.appendChild(langRow);
 
@@ -539,7 +542,7 @@ function renderPanel() {
     startBtn.style.cssText = 'width:100%;height:48px;background:#ef4444;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 2px 12px rgba(239,68,68,0.25);display:flex;align-items:center;justify-content:center;gap:8px;';
     startBtn.innerHTML = '<span style="width:10px;height:10px;border-radius:50%;background:#fff;display:inline-block;"></span> Start Capture';
     startBtn.onclick = function () {
-      sendCmd({ type: 'START_RECORDING', language: sel.options[sel.selectedIndex]?.textContent || 'English', demoType: sel.value });
+      sendCmd({ type: 'START_RECORDING', language: selectedLanguage, demoType: sel.value });
     };
     body.appendChild(startBtn);
   }
