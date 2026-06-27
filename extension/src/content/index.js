@@ -27,8 +27,64 @@ function isStepBoundary(event, el) {
 
 // ── Step management ──
 
+// Email / phone regex patterns
+var EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+var PHONE_RE = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{2,4}[-.\s]?\d{3,6}/;
+var CREDIT_RE = /\b(?:\d[ -]*?){13,19}\b/;
+
+function scanTextForSensitive(el) {
+  if (!el || !el.textContent) return false;
+  var text = el.textContent.trim();
+  if (!text) return false;
+  if (text.length > 100) return false; // skip large text blocks
+  return EMAIL_RE.test(text) || PHONE_RE.test(text) || CREDIT_RE.test(text);
+}
+
+function scanSensitiveFields() {
+  if (!hideSensitive) return [];
+  var results = [];
+  // Scan inputs
+  var inputs = document.querySelectorAll('input[type="password"], input[type="email"], input[name], input[id], input[placeholder]');
+  for (var i = 0; i < inputs.length; i++) {
+    if (isSensitiveField(inputs[i])) {
+      results.push({ type: 'sensitive', elementText: '', elementRole: 'input', boundingRect: getBoundingRect(inputs[i]), viewport: { width: window.innerWidth, height: window.innerHeight } });
+    }
+  }
+  // Scan visible text for emails/phones/cards
+  var allEls = document.querySelectorAll('span, div, p, td, th, li, a, label, h1, h2, h3, h4, h5, h6');
+  for (var i = 0; i < allEls.length; i++) {
+    var el = allEls[i];
+    if (el.offsetParent === null) continue; // skip hidden elements
+    if (el.querySelector('input')) continue; // skip containers of inputs (already handled)
+    // Only check leaf-level text elements
+    if (el.children.length === 0 && scanTextForSensitive(el)) {
+      var rect = getBoundingRect(el);
+      if (rect.width > 0 && rect.height > 0) {
+        results.push({ type: 'sensitive', elementText: '', elementRole: el.tagName.toLowerCase(), boundingRect: rect, viewport: { width: window.innerWidth, height: window.innerHeight } });
+      }
+    }
+  }
+  // Deduplicate overlapping rects
+  var filtered = [];
+  for (var i = 0; i < results.length; i++) {
+    var dup = false;
+    for (var j = 0; j < filtered.length; j++) {
+      if (Math.abs(results[i].boundingRect.x - filtered[j].boundingRect.x) < 5 &&
+          Math.abs(results[i].boundingRect.y - filtered[j].boundingRect.y) < 5) { dup = true; break; }
+    }
+    if (!dup) filtered.push(results[i]);
+  }
+  return filtered;
+}
+
 function finishStep() {
   if (currentStep.events.length === 0) return;
+
+  // Scan full page for sensitive fields
+  var sensitiveFields = scanSensitiveFields();
+  for (var si = 0; si < sensitiveFields.length; si++) {
+    currentStep.highlights.push(sensitiveFields[si]);
+  }
 
   steps.push({
     events: currentStep.events.slice(),
@@ -203,8 +259,8 @@ function recordEvent(type, el, extra) {
     });
   }
 
-  // Track sensitive fields for blurring
-  if (el && isSensitiveField(el)) {
+  // Track sensitive fields for blurring (respect privacy setting)
+  if (hideSensitive && el && isSensitiveField(el)) {
     currentStep.highlights.push({
       type: 'sensitive',
       elementText: '',
@@ -286,7 +342,7 @@ function hideBlur() {
     event.elementRole = 'lifecycle';
     event.timestamp = 0;
     events.push(event);
-    steps.push({ events: [event], highlights: [], description: 'start' });
+    steps.push({ events: [event], highlights: scanSensitiveFields(), description: 'start' });
     panelSteps = steps;
     chrome.runtime.sendMessage({ type: 'STEP_COUNT', count: steps.length }).catch(function () {});
     console.log('[HackDemo] Recording started (after overlay)');
@@ -298,6 +354,7 @@ function hideBlur() {
 var panel = null;
 var panelState = 'idle';
 var selectedLanguage = 'English (US)';
+var hideSensitive = true;
 var panelDuration = 0;
 var panelSteps = [];
 var panelProgress = { phase: '', percent: 0 };
@@ -465,7 +522,8 @@ function showSettingsInPanel() {
   pl.textContent = 'Blur sensitive info in screenshots';
   priv.appendChild(pl);
   var tog = document.createElement('input');
-  tog.type = 'checkbox'; tog.style.cssText = 'cursor:pointer;'; tog.checked = true;
+  tog.type = 'checkbox'; tog.style.cssText = 'cursor:pointer;'; tog.checked = hideSensitive;
+  tog.onchange = function () { hideSensitive = tog.checked; };
   priv.appendChild(tog);
   body.appendChild(priv);
 
@@ -723,12 +781,11 @@ function stopTracking() {
 }
 
 async function sendData() {
-  // Finish current step
+  // Finish current step (scan sensitive fields)
   if (currentStep.events.length > 0) {
-    steps.push({
-      events: currentStep.events.slice(),
-      highlights: currentStep.highlights.slice(),
-    });
+    var sFields = scanSensitiveFields();
+    for (var si = 0; si < sFields.length; si++) currentStep.highlights.push(sFields[si]);
+    steps.push({ events: currentStep.events.slice(), highlights: currentStep.highlights.slice() });
   }
 
   // Immediately hide bar + blur
@@ -740,7 +797,7 @@ async function sendData() {
   doneEvent.elementText = 'done';
   doneEvent.elementRole = 'lifecycle';
   events.push(doneEvent);
-  steps.push({ events: [doneEvent], highlights: [], description: 'done' });
+  steps.push({ events: [doneEvent], highlights: scanSensitiveFields(), description: 'done' });
 
   console.log('[HackDemo] Sending', steps.length, 'steps,', events.length, 'events');
 
