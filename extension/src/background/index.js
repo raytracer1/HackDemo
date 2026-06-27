@@ -162,7 +162,7 @@ async function handleRecordingData(rawEvents, rawSteps) {
   console.log('[HackDemo] Received', rawSteps.length, 'steps with', rawEvents.length, 'events');
 
   // Build steps immediately
-  const steps = rawSteps.map(function (rs, i) {
+  const steps = rawSteps.filter(function (rs) { return rs.events && rs.events.length > 0; }).map(function (rs, i) {
     return {
       index: i, events: rs.events,
       startTime: rs.events[0] ? rs.events[0].timestamp : 0,
@@ -233,7 +233,7 @@ async function handleRecordingData(rawEvents, rawSteps) {
 
 
 function autoDescribe(events) {
-  if (events.length === 0) return 'Unknown action';
+  if (!events || events.length === 0) return '';
   if (events.length === 1) {
     var e = events[0];
     if (e.type === 'lifecycle') return e.description || e.elementText || e.type;

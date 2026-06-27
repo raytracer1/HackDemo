@@ -27,8 +27,9 @@ export default async function demoRoutes(fastify: FastifyInstance) {
     const videoUploadUrl = await getUploadUrl(videoKey, 'video/webm');
 
     const stepItems: StepItem[] = [];
-    for (let i = 0; i < rawSteps.length; i++) {
-      const s = rawSteps[i];
+    var validSteps = rawSteps.filter(function (s: any) { return s.events && s.events.length > 0; });
+    for (let i = 0; i < validSteps.length; i++) {
+      const s = validSteps[i];
       stepItems.push({
         index: i,
         description: s.description || '',
