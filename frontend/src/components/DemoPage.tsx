@@ -31,10 +31,7 @@ export default function DemoPage() {
     const timestamps = stepsWithFrames.map((s, i) => {
       if (i === 0) return s.startTime;
       if (i === stepsWithFrames.length - 1) return s.startTime;
-      var prev = stepsWithFrames[i - 1];
-      var candidate = s.startTime - 100;
-      if (candidate > (prev.stableTime || 0)) return candidate;
-      return prev.stableTime || candidate;
+      return Math.max(0, s.startTime - 200);
     });
     extractFrames(demo.videoUrl, timestamps)
       .then((frames) => {

@@ -55,7 +55,6 @@ export async function startRecording(tabId, startTime) {
 var screenStartTime = 0;
 
 export async function startScreenCapture() {
-  screenStartTime = Date.now();
   try {
     await ensureOffscreen();
 
@@ -66,11 +65,13 @@ export async function startScreenCapture() {
       });
     });
 
-    await chrome.runtime.sendMessage({
+    var result = await chrome.runtime.sendMessage({
       type: 'START_RECORDING',
       streamId: streamId,
     });
-    console.log('[HackDemo] Screen recording started');
+    // Use the actual start time reported by the offscreen MediaRecorder
+    screenStartTime = result.actualStartTime || Date.now();
+    console.log('[HackDemo] Screen recording started at', screenStartTime);
     if (recordingTabId) {
       chrome.tabs.sendMessage(recordingTabId, { type: 'RECORDING_START_TIME', startTime: screenStartTime }).catch(function () {});
     }

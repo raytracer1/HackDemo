@@ -4,8 +4,8 @@ let recordedChunks = [];
 
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
   if (msg.type === 'START_RECORDING') {
-    startCapture(msg.streamId).then(function () {
-      sendResponse({ ok: true });
+    startCapture(msg.streamId).then(function (actualStartTime) {
+      sendResponse({ ok: true, actualStartTime: actualStartTime });
     }).catch(function (err) {
       sendResponse({ ok: false, error: err.message });
     });
@@ -57,6 +57,7 @@ async function startCapture(streamId) {
   };
 
   mediaRecorder.start(1000);
+  return Date.now();
 }
 
 async function stopCapture() {
