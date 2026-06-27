@@ -70,7 +70,7 @@ export async function synthesizeVideo(
     let finalDataUrl = originalDataUrl;
     if (step.highlights && step.highlights.length > 0) {
       try {
-        finalDataUrl = await annotateScreenshot(originalDataUrl, step.highlights);
+        finalDataUrl = await annotateScreenshot(originalDataUrl, step.highlights, step.narration);
       } catch (e) {
         // Fall back to original if annotation fails
         console.warn('Annotation failed for step', i, e);

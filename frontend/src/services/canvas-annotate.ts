@@ -39,7 +39,8 @@ function roundRect(
  */
 export async function annotateScreenshot(
   screenshotDataUrl: string,
-  highlights: Highlight[]
+  highlights: Highlight[],
+  narration?: string | null
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -150,6 +151,35 @@ export async function annotateScreenshot(
 
           ctx.fillStyle = '#ffffff';
           ctx.fillText(text, labelX + lpad, labelY);
+        }
+      }
+
+      // Draw subtitle bar with narration text
+      if (narration && narration.length > 0) {
+        const fontSize = 28;
+        ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+        const words = narration.split(' ');
+        const lines: string[] = [''];
+        const maxWidth = canvas.width - 60;
+        for (const w of words) {
+          const test = lines[lines.length - 1] + (lines[lines.length - 1] ? ' ' : '') + w;
+          if (ctx.measureText(test).width > maxWidth) {
+            lines.push(w);
+          } else {
+            lines[lines.length - 1] = test;
+          }
+        }
+        const barH = lines.length * (fontSize + 6) + 24;
+        const barY = canvas.height - barH - 40;
+        // Semi-transparent background
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillRect(0, barY, canvas.width, barH);
+        // Text
+        ctx.fillStyle = '#ffffff';
+        ctx.textBaseline = 'top';
+        for (let li = 0; li < lines.length; li++) {
+          const tw = ctx.measureText(lines[li]).width;
+          ctx.fillText(lines[li], (canvas.width - tw) / 2, barY + 12 + li * (fontSize + 6));
         }
       }
 
