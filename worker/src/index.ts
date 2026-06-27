@@ -114,6 +114,19 @@ const VOICES: Record<string, string> = {
 };
 const LANG_CODES: Record<string, string> = { 'English (US)': 'en', 'English (UK)': 'en', 'Chinese (Mandarin)': 'zh-cn', 'Japanese': 'ja' };
 
+async function generateAudioWithRetry(narration: string, language?: string, retries = 3): Promise<{ buffer: Buffer; durationMs: number }> {
+  for (var attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await generateAudio(narration, language);
+    } catch (err: any) {
+      console.warn(`[Worker] TTS attempt ${attempt}/${retries} failed:`, err.message);
+      if (attempt === retries) throw err;
+      await new Promise(r => setTimeout(r, 1000 * attempt)); // exponential backoff
+    }
+  }
+  throw new Error('TTS failed after retries');
+}
+
 async function generateAudio(narration: string, language?: string): Promise<{ buffer: Buffer; durationMs: number }> {
   const speaker = VOICES[language || 'English (US)'] || VOICES['English (US)'];
   const el = LANG_CODES[language || 'English (US)'] || 'en';
@@ -174,14 +187,20 @@ async function processDemo(demoId: string): Promise<void> {
     // Step 2: Voiceover
     console.log(`[Worker] Voiceover...`);
     await updateDemo(demoId, 'processing_audio');
-    const results = await Promise.all(
-      steps.filter((s: any) => s.narration).map(async (s: any) => {
-        const audio = await generateAudio(s.narration, language);
+    var ttsTasks = steps.filter((s: any) => s.narration).map(async (s: any, idx: number) => {
+      try {
+        const audio = await generateAudioWithRetry(s.narration, language);
         const key = await uploadAudio(demoId, s.index, audio.buffer, audio.durationMs);
         return { index: s.index, key, durationMs: audio.durationMs };
-      })
-    );
-    for (const r of results) { steps[r.index].audio_key = r.key; steps[r.index].duration_ms = r.durationMs; }
+      } catch (err: any) {
+        console.warn(`[Worker] TTS failed for step ${s.index}:`, err.message);
+        return null;
+      }
+    });
+    var results = await Promise.all(ttsTasks);
+    for (const r of results) {
+      if (r) { steps[r.index].audio_key = r.key; steps[r.index].duration_ms = r.durationMs; }
+    }
     await updateDemo(demoId, 'completed', steps);
     console.log(`[Worker] Complete`);
   } catch (err: any) {
