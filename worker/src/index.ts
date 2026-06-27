@@ -32,7 +32,7 @@ async function generateNarration(steps: any[], language?: string, demoType?: str
   const resp = await fetch('https://api.deepseek.com/v1/chat/completions', {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: 'deepseek-chat', temperature: 0.7, max_tokens: Math.max(2000, steps.length * 100),
+      model: 'deepseek-chat', temperature: 0.7, max_tokens: 8192,
       messages: [
         { role: 'system', content: `You are a HackDemo narration writer. Write in ${lang}. One sentence per step. Return ONLY a JSON array.` },
         { role: 'user', content: userPrompt },
