@@ -13,46 +13,64 @@ export function useDemoData(demoId: string): UseDemoDataResult {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!demoId || demoId === 'loading') {
-      setLoading(false);
-      return;
-    }
+    if (!demoId || demoId === 'loading') { setLoading(false); return; }
 
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    let stopped = false;
 
-    async function fetchDemo() {
+    async function api(path: string, method = 'GET') {
+      const resp = await fetch(`${BACKEND_URL}${path}`, { method });
+      if (!resp.ok) throw new Error(`API ${resp.status}`);
+      return resp.json();
+    }
+
+    async function init() {
       try {
-        const resp = await fetch(`${BACKEND_URL}/api/demos/${demoId}`);
-        if (!resp.ok) {
-          throw new Error(`Demo not found: ${resp.status}`);
-        }
-        const data = await resp.json();
+        // Step 1: Fetch demo
+        let data = await api(`/api/demos/${demoId}`);
         setDemo(data);
+
+        // Step 2: If uploaded, trigger narration
+        if (data.status === 'uploaded' || data.status === 'awaiting_upload') {
+          data = await api(`/api/demos/${demoId}/process-narration`, 'POST');
+          setDemo(data);
+        }
+
+        // Step 3: If narration done, trigger audio
+        if (data.status === 'narration_done' || data.status === 'processing_narration') {
+          // Re-fetch to get latest steps with narration
+          data = await api(`/api/demos/${demoId}`);
+          if (data.status === 'narration_done') {
+            data = await api(`/api/demos/${demoId}/process-audio`, 'POST');
+            setDemo(data);
+          }
+        }
+
+        // Step 4: Poll until completed
+        if (data.status !== 'completed' && data.status !== 'failed') {
+          const interval = setInterval(async () => {
+            if (stopped) { clearInterval(interval); return; }
+            try {
+              const d = await api(`/api/demos/${demoId}`);
+              setDemo(d);
+              if (d.status === 'completed' || d.status === 'failed') {
+                clearInterval(interval);
+                setLoading(false);
+              }
+            } catch { /* keep polling */ }
+          }, 3000);
+          return; // Don't setLoading(false) yet
+        }
+
+        setLoading(false);
       } catch (err: any) {
-        setError(err.message);
-      } finally {
+        if (!stopped) setError(err.message);
         setLoading(false);
       }
     }
 
-    fetchDemo();
-
-    // Poll if still processing
-    const interval = setInterval(async () => {
-      try {
-        const resp = await fetch(`${BACKEND_URL}/api/demos/${demoId}`);
-        const data = await resp.json();
-        setDemo(data);
-        if (data.status === 'completed' || data.status === 'failed') {
-          clearInterval(interval);
-          setLoading(false);
-        }
-      } catch {
-        // keep polling
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
+    init();
+    return () => { stopped = true; };
   }, [demoId]);
 
   return { demo, loading, error };
