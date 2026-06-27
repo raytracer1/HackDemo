@@ -107,13 +107,13 @@ export async function synthesizeVideo(
 
     // Loop the image for the duration, then fade out
     filterParts.push(
-      `[${i}:v]loop=loop=-1:size=1:start=0,trim=duration=${durationSec},fade=t=out:st=${Math.max(0, parseFloat(durationSec) - 0.5)}:d=0.5,setpts=PTS-STARTPTS[v${i}]`
+      `[${i}:v]loop=loop=-1:size=1:start=0,trim=duration=${durationSec},setpts=PTS-STARTPTS[v${i}]`
     );
 
     // Audio: trim to match duration
     if (step.audioUrl) {
       filterParts.push(
-        `[${validSteps.length + i}:a]atrim=duration=${durationSec},afade=t=out:st=${Math.max(0, parseFloat(durationSec) - 0.5)}:d=0.5,asetpts=PTS-STARTPTS[a${i}]`
+        `[${validSteps.length + i}:a]atrim=duration=${durationSec},asetpts=PTS-STARTPTS[a${i}]`
       );
     }
   }
