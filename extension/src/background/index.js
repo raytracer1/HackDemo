@@ -167,6 +167,7 @@ async function handleRecordingData(rawEvents, rawSteps) {
       index: i, events: rs.events,
       startTime: rs.events[0] ? rs.events[0].timestamp : 0,
       endTime: rs.events[rs.events.length - 1] ? rs.events[rs.events.length - 1].timestamp : 0,
+      stableTime: rs.stableTime || null,
       description: rs.description || autoDescribe(rs.events),
       actionType: autoClassify(rs.events),
       highlights: rs.highlights || [],

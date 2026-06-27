@@ -25,6 +25,19 @@ function isStepBoundary(event, el) {
 
 // ── Screenshot request to background ──
 
+// ── DOM stability detection ──
+
+function waitForDomStable() {
+  return new Promise(function (resolve) {
+    var timer = setTimeout(function () { observer.disconnect(); resolve(Date.now() - recordingStartTime); }, 400);
+    var observer = new MutationObserver(function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () { observer.disconnect(); resolve(Date.now() - recordingStartTime); }, 400);
+    });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+  });
+}
+
 // ── Step management ──
 
 // Email / phone regex patterns
@@ -77,8 +90,11 @@ function scanSensitiveFields() {
   return filtered;
 }
 
-function finishStep() {
+async function finishStep() {
   if (currentStep.events.length === 0) return;
+
+  // Wait for DOM to stabilize (MutationObserver, no changes for 400ms)
+  var stableTime = await waitForDomStable();
 
   // Scan full page for sensitive fields
   var sensitiveFields = scanSensitiveFields();
@@ -89,6 +105,7 @@ function finishStep() {
   steps.push({
     events: currentStep.events.slice(),
     highlights: currentStep.highlights.slice(),
+    stableTime: stableTime,
   });
 
   console.log('[HackDemo] Step ' + steps.length + ' saved,', currentStep.events.length, 'events');

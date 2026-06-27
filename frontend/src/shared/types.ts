@@ -27,6 +27,7 @@ export interface StepData {
   durationMs: number | null;
   startTime: number;
   endTime: number;
+  stableTime: number | null;
   pageUrl: string;
   pageTitle: string;
   highlights: Highlight[];

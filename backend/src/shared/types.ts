@@ -35,6 +35,7 @@ export interface StepItem {
   duration_ms: number | null;
   startTime: number;
   endTime: number;
+  stableTime: number | null;
   page_url: string;
   page_title: string;
   highlights: Highlight[];
@@ -68,6 +69,7 @@ export interface StepResponse {
   durationMs: number | null;
   startTime: number;
   endTime: number;
+  stableTime: number | null;
   pageUrl: string;
   pageTitle: string;
   highlights: Highlight[];
