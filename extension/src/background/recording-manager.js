@@ -52,7 +52,10 @@ export async function startRecording(tabId, startTime) {
 }
 
 // Called when blur fades — starts the actual screen recording
+var screenStartTime = 0;
+
 export async function startScreenCapture() {
+  screenStartTime = Date.now();
   try {
     await ensureOffscreen();
 
@@ -68,6 +71,9 @@ export async function startScreenCapture() {
       streamId: streamId,
     });
     console.log('[HackDemo] Screen recording started');
+    if (recordingTabId) {
+      chrome.tabs.sendMessage(recordingTabId, { type: 'RECORDING_START_TIME', startTime: screenStartTime }).catch(function () {});
+    }
   } catch (err) {
     console.warn('[HackDemo] Screen recording failed:', err.message);
   }

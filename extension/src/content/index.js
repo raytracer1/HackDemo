@@ -359,19 +359,7 @@ function hideBlur() {
   // After start overlay fades, recording actually begins
   if (!isTracking) return;
   if (steps.length === 0) {
-    isActive = true;
-    recordingStartTime = Date.now();
-    // Tell background to start screen recording NOW (after blur fades)
     chrome.runtime.sendMessage({ type: 'START_SCREEN_RECORDING' }).catch(function () {});
-    var event = createEvent('lifecycle', null);
-    event.elementText = 'start';
-    event.elementRole = 'lifecycle';
-    event.timestamp = 0;
-    events.push(event);
-    steps.push({ events: [event], highlights: scanSensitiveFields(), description: 'start' });
-    panelSteps = steps;
-    chrome.runtime.sendMessage({ type: 'STEP_COUNT', count: steps.length }).catch(function () {});
-    console.log('[HackDemo] Recording started (after overlay)');
   }
 }
 
@@ -867,6 +855,18 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
       pauseStartTime = Date.now();
       sendResponse({ ok: true });
       break;
+    case 'RECORDING_START_TIME':
+      recordingStartTime = msg.startTime;
+      isActive = true;
+      var se = createEvent('lifecycle', null);
+      se.elementText = 'start'; se.elementRole = 'lifecycle'; se.timestamp = 0;
+      events.push(se);
+      steps.push({ events: [se], highlights: scanSensitiveFields(), description: 'start' });
+      panelSteps = steps;
+      chrome.runtime.sendMessage({ type: 'STEP_COUNT', count: steps.length }).catch(function () {});
+      sendResponse({ ok: true });
+      break;
+
     case 'RESUME_TRACKING':
       totalPauseMs += Date.now() - pauseStartTime;
       isActive = true;
