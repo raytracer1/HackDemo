@@ -353,7 +353,7 @@ function hideBlur() {
     isActive = true;
     recordingStartTime = Date.now();
     // Tell background to start screen recording NOW (after blur fades)
-    chrome.runtime.sendMessage({ type: 'START_SCREEN_RECORDING', timeBase: recordingStartTime }).catch(function () {});
+    chrome.runtime.sendMessage({ type: 'START_SCREEN_RECORDING' }).catch(function () {});
     var event = createEvent('lifecycle', null);
     event.elementText = 'start';
     event.elementRole = 'lifecycle';
