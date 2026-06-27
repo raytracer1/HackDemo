@@ -29,10 +29,12 @@ export default function DemoPage() {
     setExtractingFrames(true);
     // Screenshot = previous step's stableTime (Guidde-style: show result of last action)
     const timestamps = stepsWithFrames.map((s, i) => {
-      if (i === 0 || i === stepsWithFrames.length - 1) return s.startTime;
+      if (i === 0) return s.startTime;
+      if (i === stepsWithFrames.length - 1) return s.startTime;
       var prev = stepsWithFrames[i - 1];
-      if (prev.stableTime && prev.stableTime < s.startTime) return prev.stableTime;
-      return s.startTime;
+      var candidate = s.startTime - 100;
+      if (candidate > (prev.stableTime || 0)) return candidate;
+      return prev.stableTime || candidate;
     });
     extractFrames(demo.videoUrl, timestamps)
       .then((frames) => {

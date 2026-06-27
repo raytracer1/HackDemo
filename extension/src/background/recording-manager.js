@@ -1,5 +1,6 @@
 let recordingTabId = null;
 let recordingStartTime = 0;
+let screenStartTime = 0; // actual wall-clock time when screen recording began
 let offscreenReady = false;
 
 export function getRecordingDuration() {
@@ -52,7 +53,10 @@ export async function startRecording(tabId, startTime) {
 }
 
 // Called when blur fades — starts the actual screen recording
+export function getScreenStartTime() { return screenStartTime; }
+
 export async function startScreenCapture() {
+  screenStartTime = Date.now();
   try {
     await ensureOffscreen();
 

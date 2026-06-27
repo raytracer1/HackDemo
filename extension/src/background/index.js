@@ -1,5 +1,5 @@
 import { SESSION_KEY, SETTINGS_KEY, DEFAULT_BACKEND_URL, DEFAULT_FRONTEND_URL } from '../shared/constants.js';
-import { startRecording, startScreenCapture, stopRecording, pauseRecording, resumeRecording, getData, getRecordingDuration, getVideoBlob } from './recording-manager.js';
+import { startRecording, startScreenCapture, stopRecording, pauseRecording, resumeRecording, getData, getRecordingDuration, getVideoBlob, getScreenStartTime } from './recording-manager.js';
 // uploadDemo inline
 
 // ── state ──
@@ -69,6 +69,8 @@ function clearBadge() {
 
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
   if (msg.type === 'START_SCREEN_RECORDING') {
+    // Record the content script's time base for sync
+    if (session && msg.timeBase) session.timeBase = msg.timeBase;
     startScreenCapture().then(function () { sendResponse({ ok: true }); });
     return true;
   }
@@ -161,13 +163,16 @@ async function handleRecordingData(rawEvents, rawSteps) {
 
   console.log('[HackDemo] Received', rawSteps.length, 'steps with', rawEvents.length, 'events');
 
+  // Synchronize timestamps to video recording start
+  var videoOffset = getScreenStartTime() - (s.timeBase || s.startTime);
+
   // Build steps immediately
   const steps = rawSteps.map(function (rs, i) {
     return {
       index: i, events: rs.events,
-      startTime: rs.events[0] ? rs.events[0].timestamp : 0,
-      endTime: rs.events[rs.events.length - 1] ? rs.events[rs.events.length - 1].timestamp : 0,
-      stableTime: rs.stableTime || null,
+      startTime: (rs.events[0] ? rs.events[0].timestamp : 0) - videoOffset,
+      endTime: (rs.events[rs.events.length - 1] ? rs.events[rs.events.length - 1].timestamp : 0) - videoOffset,
+      stableTime: rs.stableTime ? rs.stableTime - videoOffset : null,
       description: rs.description || autoDescribe(rs.events),
       actionType: autoClassify(rs.events),
       highlights: rs.highlights || [],

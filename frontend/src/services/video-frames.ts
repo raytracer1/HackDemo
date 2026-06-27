@@ -20,10 +20,10 @@ export async function extractFrames(
       canvas.height = 720;
       canvas.width = Math.round(720 * ratio);
       const ctx = canvas.getContext('2d')!;
-      const maxTime = video.duration * 1000;
+      const maxTime = video.duration * 1000 - 100; // safety margin
 
       for (let i = 0; i < timestamps.length; i++) {
-        const timeMs = Math.min(timestamps[i], maxTime);
+        const timeMs = Math.min(timestamps[i], maxTime - 100);
 
         console.log(`[HackDemo] Extracting frame at ${(timeMs / 1000).toFixed(1)}s (${i + 1}/${timestamps.length})`);
 
