@@ -769,7 +769,9 @@ function showStartOverlay() {
 function startTracking(startTime) {
   recordingStartTime = startTime;
   isTracking = true;
-  isActive = false; // Wait for blur overlay to fade
+  isActive = false;
+  totalPauseMs = 0;
+  pauseStartTime = 0;
   events = [];
   steps = [];
   currentStep = { events: [], highlights: [] };
