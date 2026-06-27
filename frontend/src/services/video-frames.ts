@@ -1,54 +1,56 @@
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
-
-const CORE_URL = '/ffmpeg/ffmpeg-core.js';
-const WASM_URL = '/ffmpeg/ffmpeg-core.wasm';
-
 /**
- * Extract JPEG frames from a video at given timestamps (in ms).
- * Returns an array of { time: number, dataUrl: string }.
+ * Extract frames from video using native browser Video + Canvas (no FFmpeg).
+ * Much lighter and more reliable than FFmpeg WASM for frame extraction.
  */
 export async function extractFrames(
   videoUrl: string,
   timestamps: number[]
 ): Promise<Array<{ time: number; dataUrl: string }>> {
-  const ffmpeg = new FFmpeg();
-  await ffmpeg.load({
-    coreURL: await toBlobURL(CORE_URL, 'text/javascript') as any,
-    wasmURL: await toBlobURL(WASM_URL, 'application/wasm') as any,
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.preload = 'auto';
+    video.muted = true;
+
+    const frames: Array<{ time: number; dataUrl: string }> = [];
+
+    video.onloadedmetadata = async () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      const ctx = canvas.getContext('2d')!;
+      const maxTime = video.duration * 1000;
+
+      for (let i = 0; i < timestamps.length; i++) {
+        const timeMs = Math.min(timestamps[i], maxTime);
+
+        console.log(`[HackDemo] Extracting frame at ${(timeMs / 1000).toFixed(1)}s (${i + 1}/${timestamps.length})`);
+
+        video.currentTime = timeMs / 1000;
+
+        await new Promise<void>((r) => {
+          const onSeeked = () => { video.removeEventListener('seeked', onSeeked); r(); };
+          video.addEventListener('seeked', onSeeked);
+          // Timeout after 5s
+          setTimeout(() => { video.removeEventListener('seeked', onSeeked); r(); }, 5000);
+        });
+
+        if (video.readyState >= 2) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          frames.push({ time: timeMs, dataUrl: canvas.toDataURL('image/jpeg', 0.85) });
+        }
+      }
+
+      URL.revokeObjectURL(video.src);
+      resolve(frames);
+    };
+
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      reject(new Error('Failed to load video'));
+    };
+
+    video.src = videoUrl;
+    video.load();
   });
-
-  // Download video
-  console.log('[HackDemo] Downloading video for frame extraction...');
-  await ffmpeg.writeFile('input.webm', await fetchFile(videoUrl));
-
-  const frames: Array<{ time: number; dataUrl: string }> = [];
-
-  for (let i = 0; i < timestamps.length; i++) {
-    const timeMs = timestamps[i];
-    const timeSec = (timeMs / 1000).toFixed(3);
-
-    console.log(`[HackDemo] Extracting frame at ${timeSec}s (${i + 1}/${timestamps.length})`);
-
-    // Extract a single frame at the given timestamp
-    await ffmpeg.exec([
-      '-ss', timeSec,
-      '-i', 'input.webm',
-      '-vframes', '1',
-      '-q:v', '5',
-      `frame_${i}.jpg`,
-    ]);
-
-    const data = await ffmpeg.readFile(`frame_${i}.jpg`);
-    const blob = new Blob([data as BlobPart], { type: 'image/jpeg' });
-    const dataUrl = await new Promise<string>((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.readAsDataURL(blob);
-    });
-
-    frames.push({ time: timeMs, dataUrl });
-  }
-
-  return frames;
 }
