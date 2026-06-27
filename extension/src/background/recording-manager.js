@@ -25,7 +25,7 @@ async function ensureOffscreen() {
   offscreenReady = true;
 }
 
-async function closeOffscreen() {
+export async function closeOffscreen() {
   try {
     await chrome.offscreen.closeDocument();
   } catch (_) {}

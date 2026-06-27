@@ -1,5 +1,5 @@
 import { SESSION_KEY, SETTINGS_KEY, DEFAULT_BACKEND_URL, DEFAULT_FRONTEND_URL } from '../shared/constants.js';
-import { startRecording, startScreenCapture, stopRecording, pauseRecording, resumeRecording, getData, getRecordingDuration, getVideoBlob } from './recording-manager.js';
+import { startRecording, startScreenCapture, stopRecording, pauseRecording, resumeRecording, getData, getRecordingDuration, getVideoBlob, closeOffscreen } from './recording-manager.js';
 // uploadDemo inline
 
 // ── state ──
@@ -287,6 +287,8 @@ async function handleDelete() {
   const s = await getSession();
   if (!s || (s.state !== 'recording' && s.state !== 'paused')) return { success: false };
   stopRecording();
+  try { await chrome.runtime.sendMessage({ type: 'STOP_RECORDING' }); } catch (_) {}
+  try { await closeOffscreen(); } catch (_) {}
   session = null;
   clearBadge();
   await chrome.storage.session.remove(SESSION_KEY);
