@@ -55,55 +55,126 @@ async function generateNarration(steps: any[], language?: string, demoType?: str
 }
 
 // ── MP3 duration ──
-const BITRATES: Record<number, number[]> = {
-  1: [0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,0], // MPEG1
-  2: [0,32,48,56,64,80,96,112,128,160,192,224,256,320,384,0], // MPEG2
-};
-const SAMPLERATES: Record<number, number[]> = {
-  1: [44100,48000,32000,0],
-  2: [22050,24000,16000,0],
-  3: [11025,12000,8000,0],
-};
 
 function getMp3Duration(buf: Buffer): number {
-  var offset = 0;
-  // Skip ID3v2 tag if present
-  if (buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33) {
-    offset = ((buf[6] & 0x7f) << 21) | ((buf[7] & 0x7f) << 14) | ((buf[8] & 0x7f) << 7) | (buf[9] & 0x7f);
-    offset += 10;
+  if (buf.length < 4) return 0;
+
+  let offset = 0;
+
+  // Skip ID3v2 tag
+  if (
+    buf.length >= 10 &&
+    buf.toString("ascii", 0, 3) === "ID3"
+  ) {
+    const size =
+      ((buf[6] & 0x7f) << 21) |
+      ((buf[7] & 0x7f) << 14) |
+      ((buf[8] & 0x7f) << 7) |
+      (buf[9] & 0x7f);
+
+    offset = 10 + size;
   }
-  // Find first valid frame header
-  for (var i = offset; i < buf.length - 1; i++) {
-    if (buf[i] === 0xff && (buf[i + 1] & 0xe0) === 0xe0) {
-      var header = (buf[i] << 8) | buf[i + 1];
-      var versionIdx = (header >> 19) & 3;
-      var layer = (header >> 17) & 3;
-      if (layer !== 1) continue; // Layer 3
-      var bitrateIdx = (header >> 12) & 15;
-      var sampleIdx = (header >> 10) & 3;
-      var padding = (header >> 9) & 1;
-      // Map version
-      var ver = versionIdx === 3 ? 1 : versionIdx === 2 ? 2 : 3;
-      var bitrateTable = BITRATES[ver === 1 ? 1 : 2] || BITRATES[1];
-      var sampleTable = SAMPLERATES[ver] || SAMPLERATES[1];
-      var bitrate = bitrateTable[bitrateIdx] * 1000;
-      var sampleRate = sampleTable[sampleIdx];
-      if (!bitrate || !sampleRate) continue;
-      var frameSize = ver === 1 ? 144 * bitrate / sampleRate + padding : 72 * bitrate / sampleRate + padding;
-      // Count frames
-      var frames = 0, pos = i;
-      while (pos < buf.length - 1) {
-        if (buf[pos] === 0xff && (buf[pos + 1] & 0xe0) === 0xe0) {
-          frames++;
-          pos += Math.floor(frameSize);
-        } else break;
-      }
-      var samplesPerFrame = ver === 1 ? 1152 : 576;
-      return Math.ceil((frames * samplesPerFrame / sampleRate) * 1000);
+
+  const bitrateTableV1L3 = [
+    0, 32, 40, 48, 56, 64, 80, 96,
+    112, 128, 160, 192, 224, 256, 320, 0,
+  ];
+
+  const bitrateTableV2L3 = [
+    0, 8, 16, 24, 32, 40, 48, 56,
+    64, 80, 96, 112, 128, 144, 160, 0,
+  ];
+
+  const sampleRateTable: Record<number, number[]> = {
+    3: [44100, 48000, 32000], // MPEG1
+    2: [22050, 24000, 16000], // MPEG2
+    0: [11025, 12000, 8000],  // MPEG2.5
+  };
+
+  let totalSamples = 0;
+  let sampleRate = 0;
+
+  while (offset + 4 <= buf.length) {
+    // Sync word
+    if (
+      buf[offset] !== 0xff ||
+      (buf[offset + 1] & 0xe0) !== 0xe0
+    ) {
+      offset++;
+      continue;
     }
+
+    const b1 = buf[offset + 1];
+    const b2 = buf[offset + 2];
+
+    const version = (b1 >> 3) & 0x03;
+    const layer = (b1 >> 1) & 0x03;
+
+    // Reserved MPEG version
+    if (version === 1) {
+      offset++;
+      continue;
+    }
+
+    // Layer III only
+    if (layer !== 1) {
+      offset++;
+      continue;
+    }
+
+    const bitrateIndex = (b2 >> 4) & 0x0f;
+    const sampleRateIndex = (b2 >> 2) & 0x03;
+    const padding = (b2 >> 1) & 0x01;
+
+    if (
+      bitrateIndex === 0 ||
+      bitrateIndex === 15 ||
+      sampleRateIndex === 3
+    ) {
+      offset++;
+      continue;
+    }
+
+    const currentSampleRate =
+      sampleRateTable[version]?.[sampleRateIndex];
+
+    if (!currentSampleRate) {
+      offset++;
+      continue;
+    }
+
+    if (sampleRate === 0) {
+      sampleRate = currentSampleRate;
+    }
+
+    const isMpeg1 = version === 3;
+
+    const bitrate = isMpeg1
+      ? bitrateTableV1L3[bitrateIndex]
+      : bitrateTableV2L3[bitrateIndex];
+
+    const samplesPerFrame = isMpeg1 ? 1152 : 576;
+
+    const frameLength = isMpeg1
+      ? Math.floor((144000 * bitrate) / currentSampleRate) + padding
+      : Math.floor((72000 * bitrate) / currentSampleRate) + padding;
+
+    if (
+      frameLength <= 0 ||
+      offset + frameLength > buf.length
+    ) {
+      break;
+    }
+
+    totalSamples += samplesPerFrame;
+    offset += frameLength;
   }
-  // Fallback: word-count estimate
-  return 2000;
+
+  if (sampleRate === 0 || totalSamples === 0) {
+    return 0;
+  }
+
+  return Math.round((totalSamples * 1000) / sampleRate);
 }
 
 // ── Volcengine TTS ──
