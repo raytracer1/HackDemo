@@ -4,7 +4,7 @@ import * as Ably from 'ably';
 const BACKEND = process.env.BACKEND_URL || 'http://localhost:3001';
 
 // ── Backend API helpers ──
-async function getDemo(id: string) {
+async function getDemo(id: string): Promise<any> {
   const resp = await fetch(`${BACKEND}/api/demos/${id}`);
   if (!resp.ok) throw new Error(`GET demo failed: ${resp.status}`);
   return resp.json();
@@ -49,9 +49,21 @@ async function generateNarration(steps: any[], language?: string, demoType?: str
   console.log('[Worker] DeepSeek full response:', JSON.stringify(data).slice(0, 800));
   const content = data.choices?.[0]?.message?.content || '';
   if (!content) throw new Error('DeepSeek returned empty content');
-  const match = content.match(/\[[\s\S]*\]/);
+  var match = content.match(/\[[\s\S]*\]/);
+  // If truncated, try to fix the JSON by completing it
+  if (!match) {
+    var lastComma = content.lastIndexOf(',');
+    if (lastComma > 0) {
+      var fixed = content.slice(0, lastComma) + '\n]';
+      match = fixed.match(/\[[\s\S]*\]/);
+    }
+  }
   if (!match) throw new Error(`Narration parse failed. Content: ${content.slice(0, 300)}`);
-  return JSON.parse(match[0]);
+  var narrations = JSON.parse(match[0]);
+  if (narrations.length < steps.length) {
+    while (narrations.length < steps.length) narrations.push('Demo step ' + (narrations.length + 1));
+  }
+  return narrations.slice(0, steps.length);
 }
 
 // ── MP3 duration ──
@@ -177,13 +189,14 @@ function getMp3Duration(buf: Buffer): number {
   return Math.round((totalSamples * 1000) / sampleRate);
 }
 
-// ── Volcengine TTS ──
-const VOICES: Record<string, string> = {
-  'English (US)': 'en_female_lauren_moon_bigtts', 'English (UK)': 'en_female_emily_mars_bigtts',
-  'Chinese (Mandarin)': 'zh_female_vv_mars_bigtts', 'Chinese (Cantonese)': 'zh_female_vv_mars_bigtts',
-  'Japanese': 'multi_female_sophie_conversation_wvae_bigtts', 'Spanish': 'multi_female_maomao_conversation_wvae_bigtts',
+// ── Google TTS (free, no API key, reliable) ──
+var LANG_MAP: Record<string, string> = {
+  'English (US)': 'en', 'English (UK)': 'en',
+  'Chinese (Mandarin)': 'zh-CN', 'Chinese (Cantonese)': 'zh-CN',
+  'Japanese': 'ja', 'Spanish': 'es',
 };
-const LANG_CODES: Record<string, string> = { 'English (US)': 'en', 'English (UK)': 'en', 'Chinese (Mandarin)': 'zh-cn', 'Japanese': 'ja' };
+
+function getLang(language?: string): string { return LANG_MAP[language || 'English (US)'] || 'en'; }
 
 async function generateAudioWithRetry(narration: string, language?: string, retries = 3): Promise<{ buffer: Buffer; durationMs: number }> {
   for (var attempt = 1; attempt <= retries; attempt++) {
@@ -192,36 +205,38 @@ async function generateAudioWithRetry(narration: string, language?: string, retr
     } catch (err: any) {
       console.warn(`[Worker] TTS attempt ${attempt}/${retries} failed:`, err.message);
       if (attempt === retries) throw err;
-      await new Promise(r => setTimeout(r, 1000 * attempt)); // exponential backoff
+      await new Promise(r => setTimeout(r, 1000 * attempt));
     }
   }
   throw new Error('TTS failed after retries');
 }
 
 async function generateAudio(narration: string, language?: string): Promise<{ buffer: Buffer; durationMs: number }> {
-  const speaker = VOICES[language || 'English (US)'] || VOICES['English (US)'];
-  const el = LANG_CODES[language || 'English (US)'] || 'en';
-  const resp = await fetch('https://openspeech.bytedance.com/api/v3/tts/unidirectional/sse', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Api-App-Id': process.env.VOLC_APP_ID || '', 'X-Api-Access-Key': process.env.VOLC_ACCESS_TOKEN || '',
-      'X-Api-Resource-Id': 'seed-tts-1.0', 'X-Api-Connect-Id': crypto.randomUUID(),
-    },
-    body: JSON.stringify({
-      user: { uid: 'hackdemo-worker' },
-      req_params: { speaker, audio_params: { format: 'mp3', sample_rate: 24000 }, text: narration, additions: JSON.stringify({ explicit_language: el }) },
-    }),
-  });
-  const text = await resp.text();
-  const buffers: Buffer[] = [];
-  for (const line of text.split('\n')) {
-    if (line.startsWith('data:')) try { const d = JSON.parse(line.slice(5)); if (d.data) buffers.push(Buffer.from(d.data, 'base64')); } catch (_) {}
+  var tl = getLang(language);
+  var chunks = splitText(narration, 180);
+  var buffers: Buffer[] = [];
+  for (var ci = 0; ci < chunks.length; ci++) {
+    var url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunks[ci])}&tl=${tl}&client=tw-ob`;
+    var resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (!resp.ok) throw new Error(`Google TTS ${resp.status}`);
+    var buf = Buffer.from(await resp.arrayBuffer());
+    buffers.push(buf);
   }
-  if (buffers.length === 0) throw new Error('No audio');
-  const full = Buffer.concat(buffers);
-  const ms = getMp3Duration(full);
+  var full = Buffer.concat(buffers);
+  var ms = getMp3Duration(full);
   return { buffer: full, durationMs: ms };
+}
+
+function splitText(text: string, maxLen: number): string[] {
+  var sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+  var result: string[] = [];
+  var cur = '';
+  for (var si = 0; si < sentences.length; si++) {
+    if (cur.length + sentences[si].length > maxLen && cur.length > 0) { result.push(cur.trim()); cur = ''; }
+    cur += sentences[si];
+  }
+  if (cur.trim()) result.push(cur.trim());
+  return result.length > 0 ? result : [text];
 }
 
 // ── Upload audio via backend ──
@@ -232,7 +247,7 @@ async function uploadAudio(demoId: string, index: number, buffer: Buffer, durati
     body: JSON.stringify({ index, audio: buffer.toString('base64'), duration_ms: durationMs }),
   });
   if (!resp.ok) throw new Error(`Audio upload failed: ${resp.status}`);
-  const data = await resp.json();
+  const data = await resp.json() as any;
   return data.key;
 }
 
