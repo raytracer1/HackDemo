@@ -54,6 +54,58 @@ async function generateNarration(steps: any[], language?: string, demoType?: str
   return JSON.parse(match[0]);
 }
 
+// ── MP3 duration ──
+const BITRATES: Record<number, number[]> = {
+  1: [0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,0], // MPEG1
+  2: [0,32,48,56,64,80,96,112,128,160,192,224,256,320,384,0], // MPEG2
+};
+const SAMPLERATES: Record<number, number[]> = {
+  1: [44100,48000,32000,0],
+  2: [22050,24000,16000,0],
+  3: [11025,12000,8000,0],
+};
+
+function getMp3Duration(buf: Buffer): number {
+  var offset = 0;
+  // Skip ID3v2 tag if present
+  if (buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33) {
+    offset = ((buf[6] & 0x7f) << 21) | ((buf[7] & 0x7f) << 14) | ((buf[8] & 0x7f) << 7) | (buf[9] & 0x7f);
+    offset += 10;
+  }
+  // Find first valid frame header
+  for (var i = offset; i < buf.length - 1; i++) {
+    if (buf[i] === 0xff && (buf[i + 1] & 0xe0) === 0xe0) {
+      var header = (buf[i] << 8) | buf[i + 1];
+      var versionIdx = (header >> 19) & 3;
+      var layer = (header >> 17) & 3;
+      if (layer !== 1) continue; // Layer 3
+      var bitrateIdx = (header >> 12) & 15;
+      var sampleIdx = (header >> 10) & 3;
+      var padding = (header >> 9) & 1;
+      // Map version
+      var ver = versionIdx === 3 ? 1 : versionIdx === 2 ? 2 : 3;
+      var bitrateTable = BITRATES[ver === 1 ? 1 : 2] || BITRATES[1];
+      var sampleTable = SAMPLERATES[ver] || SAMPLERATES[1];
+      var bitrate = bitrateTable[bitrateIdx] * 1000;
+      var sampleRate = sampleTable[sampleIdx];
+      if (!bitrate || !sampleRate) continue;
+      var frameSize = ver === 1 ? 144 * bitrate / sampleRate + padding : 72 * bitrate / sampleRate + padding;
+      // Count frames
+      var frames = 0, pos = i;
+      while (pos < buf.length - 1) {
+        if (buf[pos] === 0xff && (buf[pos + 1] & 0xe0) === 0xe0) {
+          frames++;
+          pos += Math.floor(frameSize);
+        } else break;
+      }
+      var samplesPerFrame = ver === 1 ? 1152 : 576;
+      return Math.ceil((frames * samplesPerFrame / sampleRate) * 1000);
+    }
+  }
+  // Fallback: word-count estimate
+  return 2000;
+}
+
 // ── Volcengine TTS ──
 const VOICES: Record<string, string> = {
   'English (US)': 'en_female_lauren_moon_bigtts', 'English (UK)': 'en_female_emily_mars_bigtts',
@@ -83,8 +135,9 @@ async function generateAudio(narration: string, language?: string): Promise<{ bu
     if (line.startsWith('data:')) try { const d = JSON.parse(line.slice(5)); if (d.data) buffers.push(Buffer.from(d.data, 'base64')); } catch (_) {}
   }
   if (buffers.length === 0) throw new Error('No audio');
-  const ms = Math.ceil((narration.split(/\s+/).length / 150) * 60000) + 500;
-  return { buffer: Buffer.concat(buffers), durationMs: ms };
+  const full = Buffer.concat(buffers);
+  const ms = getMp3Duration(full);
+  return { buffer: full, durationMs: ms };
 }
 
 // ── Upload audio via backend ──
