@@ -15,9 +15,10 @@ export async function extractFrames(
     const frames: Array<{ time: number; dataUrl: string }> = [];
 
     video.onloadedmetadata = async () => {
+      var ratio = (video.videoHeight > 0) ? (video.videoWidth / video.videoHeight) : (16/9);
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth || 1280;
-      canvas.height = video.videoHeight || 720;
+      canvas.height = 720;
+      canvas.width = Math.round(720 * ratio);
       const ctx = canvas.getContext('2d')!;
       const maxTime = video.duration * 1000;
 
