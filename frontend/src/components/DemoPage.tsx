@@ -72,7 +72,7 @@ export default function DemoPage() {
       setSynthesisError(err.message);
       setSynthesisStatus('error');
     }
-  }, [demo]);
+  }, [demo, stepsWithFrames]);
 
   // Loading state
   if (loading) {
@@ -142,15 +142,22 @@ export default function DemoPage() {
                 </p>
               </>
             ) : synthesisStatus === 'idle' ? (
-              <>
-                <p className="text-gray-400 text-sm mb-2">Ready to generate demo video</p>
-                <button
-                  onClick={handleGenerateVideo}
-                  className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-medium transition-colors"
-                >
-                  Generate Video
-                </button>
-              </>
+              extractingFrames ? (
+                <>
+                  <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-gray-400 text-sm">Extracting frames from video...</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-400 text-sm mb-2">Ready to generate demo video</p>
+                  <button
+                    onClick={handleGenerateVideo}
+                    className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-medium transition-colors"
+                  >
+                    Generate Video
+                  </button>
+                </>
+              )
             ) : synthesisStatus === 'error' ? (
               <>
                 <p className="text-red-400 text-sm">{synthesisError}</p>
