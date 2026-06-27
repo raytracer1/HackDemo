@@ -33,7 +33,7 @@ export async function generateNarration(steps: StepInput[], language?: string, d
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) throw new Error('DEEPSEEK_API_KEY not configured');
 
-  const userPrompt = `Here are the demo steps:\n${JSON.stringify(
+  const userPrompt = `Here are ${steps.length} demo steps. Generate exactly ${steps.length} narration sentences, one per step, in the same order.\n\n${JSON.stringify(
     steps.map((s) => ({
       index: s.index,
       description: s.description,
@@ -41,7 +41,7 @@ export async function generateNarration(steps: StepInput[], language?: string, d
     })),
     null,
     2
-  )}\n\nGenerate ONE sentence of narration per step. Return a JSON array of strings.`;
+  )}\n\nReturn a JSON array of exactly ${steps.length} strings. No more, no less.`;
 
   const response = await fetch(DEEPSEEK_URL, {
     method: 'POST',
@@ -56,7 +56,7 @@ export async function generateNarration(steps: StepInput[], language?: string, d
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.7,
-      max_tokens: 2000,
+      max_tokens: Math.max(2000, steps.length * 100),
     }),
   });
 
