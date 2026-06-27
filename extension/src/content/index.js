@@ -753,9 +753,6 @@ function showStartOverlay() {
           <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
           Recording started
         </div>
-        <div style="font-size:13px;color:#9ca3af;margin-top:8px;font-weight:400;">
-          Perform your demo — click Done in the extension when finished
-        </div>
       </div>
     </div>
   `;
