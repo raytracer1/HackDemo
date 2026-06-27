@@ -448,7 +448,7 @@ function showSettingsInPanel() {
 
   var sel = document.createElement('select');
   sel.style.cssText = 'padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;cursor:pointer;';
-  ['English (US)', 'English (UK)', 'Chinese (Mandarin)', 'Chinese (Cantonese)', 'Japanese', 'Korean', 'French', 'German', 'Spanish', 'Portuguese', 'Italian', 'Russian', 'Arabic', 'Hindi', 'Dutch', 'Polish', 'Turkish', 'Swedish', 'Thai', 'Vietnamese', 'Indonesian'].forEach(function (l) {
+  ['English (US)', 'English (UK)', 'Chinese (Mandarin)', 'Chinese (Cantonese)', 'Japanese', 'Spanish'].forEach(function (l) {
     var o = document.createElement('option'); o.textContent = l; sel.appendChild(o);
   });
   langRow.appendChild(sel);
