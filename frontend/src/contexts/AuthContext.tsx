@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const callbackInput = document.createElement('input');
     callbackInput.type = 'hidden';
     callbackInput.name = 'callbackUrl';
-    callbackInput.value = window.location.origin + '/#/';
+    callbackInput.value = window.location.origin + '/';
     form.appendChild(callbackInput);
 
     document.body.appendChild(form);
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const callbackInput = document.createElement('input');
     callbackInput.type = 'hidden';
     callbackInput.name = 'callbackUrl';
-    callbackInput.value = window.location.origin + '/#/';
+    callbackInput.value = window.location.origin + '/';
     form.appendChild(callbackInput);
 
     document.body.appendChild(form);

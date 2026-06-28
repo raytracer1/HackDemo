@@ -194,7 +194,7 @@ async function handleRecordingData(rawEvents, rawSteps) {
     });
     var createData = await createResp.json();
     var demoId = createData.id;
-    chrome.tabs.create({ url: frontendUrl + '/#/demo/' + demoId });
+    chrome.tabs.create({ url: frontendUrl + '/demo/' + demoId });
     console.log('[HackDemo] Tab opened for', demoId);
 
     // Now: 1s delay → getFrames → upload screenshots in background
