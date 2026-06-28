@@ -3,6 +3,7 @@ import DemoPage from './components/DemoPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import PricingPage from './pages/PricingPage';
+import HistoryPage from './pages/HistoryPage';
 
 export default function App() {
   return (
@@ -10,6 +11,7 @@ export default function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/history" element={<HistoryPage />} />
       <Route path="/demo/:demoId" element={<DemoPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

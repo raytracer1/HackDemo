@@ -10,6 +10,33 @@ import { authenticate } from '../auth/token.js';
 export default async function demoRoutes(fastify: FastifyInstance) {
 
   /**
+   * GET /api/users/me/demos — returns the current user's demos for history page.
+   */
+  fastify.get('/api/users/me/demos', async (request, reply) => {
+    const auth = await authenticate(request.headers.authorization);
+    if (!auth || auth.role !== 'user') {
+      return reply.status(401).send({ error: 'Authentication required.' });
+    }
+
+    const page = parseInt((request.query as any).page || '1', 10);
+    const limit = Math.min(parseInt((request.query as any).limit || '10', 10), 20);
+    const offset = (page - 1) * limit;
+
+    const countResult = await query(
+      `SELECT COUNT(*) FROM demos WHERE user_id = $1`,
+      [auth.sub],
+    );
+    const total = parseInt(countResult.rows?.[0]?.count || '0', 10);
+
+    const result = await query(
+      `SELECT id, title, status, language, created_at, updated_at
+       FROM demos WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+      [auth.sub, limit, offset],
+    );
+    return reply.send({ demos: result.rows || [], total, page, limit });
+  });
+
+  /**
    * GET /api/demos/:id/credits — worker checks user balance before processing.
    */
   fastify.get('/api/demos/:id/credits', async (request, reply) => {
