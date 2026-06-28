@@ -5,13 +5,13 @@ import { useAuth } from '../contexts/AuthContext';
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
   const [clicked, setClicked] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const handleSignIn = () => {
     setClicked(true);
     login();
   };
 
-  // Already logged in — redirect hint
   if (isAuthenticated && !isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
@@ -33,22 +33,33 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        {/* Branding */}
         <div className="mb-10 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-hack-primary text-xl font-bold text-white">
-            HD
-          </div>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-hack-primary text-xl font-bold text-white">HD</div>
           <h1 className="text-2xl font-bold text-white">Welcome to HackDemo</h1>
-          <p className="mt-2 text-sm text-gray-400">
-            Sign in to record and share product demos
-          </p>
+          <p className="mt-2 text-sm text-gray-400">Sign in to record and share product demos</p>
         </div>
+
+        {/* Agreement checkbox */}
+        <label className="mb-4 flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-800 text-hack-primary focus:ring-hack-primary"
+          />
+          <span className="text-xs text-gray-400">
+            I agree to the{' '}
+            <Link to="/terms" className="text-hack-primary hover:underline" target="_blank">Terms of Service</Link>
+            {' '}and{' '}
+            <Link to="/privacy" className="text-hack-primary hover:underline" target="_blank">Privacy Policy</Link>
+          </span>
+        </label>
 
         {/* Google sign-in */}
         <button
           onClick={handleSignIn}
-          disabled={clicked || isLoading}
-          className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-700 bg-white px-6 py-3.5 text-sm font-semibold text-gray-800 transition-all hover:bg-gray-100 active:scale-[0.98] disabled:opacity-60"
+          disabled={clicked || isLoading || !agreed}
+          className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-700 bg-white px-6 py-3.5 text-sm font-semibold text-gray-800 transition-all hover:bg-gray-100 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {clicked ? (
             <>
@@ -70,10 +81,6 @@ export default function LoginPage() {
             </>
           )}
         </button>
-
-        <p className="mt-6 text-center text-xs text-gray-500">
-          By signing in, you agree to our Terms of Service and Privacy Policy.
-        </p>
       </div>
     </div>
   );

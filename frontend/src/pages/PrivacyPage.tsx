@@ -1,0 +1,54 @@
+export default function PrivacyPage() {
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
+      <h1 className="text-2xl font-bold text-white">Privacy Policy</h1>
+      <p className="mt-1 text-sm text-gray-500">Last updated: June 2026</p>
+
+      <div className="mt-8 space-y-6 text-sm leading-relaxed text-gray-300">
+        <section>
+          <h2 className="text-lg font-semibold text-white">1. Information We Collect</h2>
+          <p className="mt-2">
+            When you sign in with Google, we collect your name, email address, and profile picture.
+            When you record a demo, we collect browser interactions (clicks, inputs, page URLs) and
+            screenshots necessary to generate the demo video.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-white">2. How We Use Your Information</h2>
+          <p className="mt-2">
+            We use your information to provide the HackDemo service: authenticating your account,
+            generating AI-narrated demo videos, and tracking your credit balance. We do not sell
+            your personal information to third parties.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-white">3. Data Storage</h2>
+          <p className="mt-2">
+            Demo recordings, screenshots, and generated videos are stored on Cloudflare R2.
+            Account information is stored in a secure database. You can request deletion of your
+            data by contacting us.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-white">4. Third-Party Services</h2>
+          <p className="mt-2">
+            We use Google OAuth for authentication, DeepSeek for AI narration generation,
+            Google TTS for voiceover, and PayPal for payment processing. Each service has its
+            own privacy policy.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-white">5. Contact</h2>
+          <p className="mt-2">
+            If you have questions about this privacy policy, contact us at{' '}
+            <a href="mailto:demoagenttest123@gmail.com" className="text-hack-primary hover:underline">demoagenttest123@gmail.com</a>.
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+}

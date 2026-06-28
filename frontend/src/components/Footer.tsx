@@ -14,13 +14,11 @@ export default function Footer() {
 
         {/* Links */}
         <nav className="flex items-center gap-6 text-sm text-gray-500">
-          <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-gray-300">
-            GitHub
-          </a>
+          <Link to="/privacy" className="no-underline transition-colors hover:text-gray-300">Privacy</Link>
           <span className="text-gray-700">·</span>
-          <a href="mailto:support@hackdemo.dev" className="transition-colors hover:text-gray-300">
-            Contact
-          </a>
+          <Link to="/terms" className="no-underline transition-colors hover:text-gray-300">Terms</Link>
+          <span className="text-gray-700">·</span>
+          <a href="mailto:demoagenttest123@gmail.com" className="transition-colors hover:text-gray-300">Contact</a>
           <span className="text-gray-700">·</span>
           <span>&copy; {new Date().getFullYear()} HackDemo</span>
         </nav>
