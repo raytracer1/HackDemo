@@ -114,6 +114,6 @@ export default async function registerRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Invalid or expired verification token.' });
     }
 
-    return reply.redirect(`${FRONTEND_URL}/login?verified=1`);
+    return reply.send({ ok: true });
   });
 }
