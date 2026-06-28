@@ -52,7 +52,7 @@ export default function Header() {
                     <p className="text-xs text-gray-500 truncate">{user.email}</p>
                     <p className="mt-1.5 flex items-center gap-1 text-xs">
                       <span className="text-gray-400">Balance</span>
-                      <span className="font-medium text-hack-success">${user.credits.toFixed(2)}</span>
+                      <span className="font-medium text-hack-success">${user.credits.toFixed(4)}</span>
                     </p>
                   </div>
                   <Link to="/history" onClick={() => setDropdownOpen(false)} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 no-underline transition-colors hover:bg-gray-50">
