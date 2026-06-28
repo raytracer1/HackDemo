@@ -34,6 +34,22 @@ export default function Header() {
           <span className="text-lg font-semibold tracking-tight">HackDemo</span>
         </Link>
 
+        {/* Nav links */}
+        <nav className="hidden sm:flex items-center gap-1">
+          <Link
+            to="/"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-gray-300 no-underline transition-colors hover:bg-gray-800 hover:text-white"
+          >
+            Home
+          </Link>
+          <Link
+            to="/pricing"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-gray-300 no-underline transition-colors hover:bg-gray-800 hover:text-white"
+          >
+            Pricing
+          </Link>
+        </nav>
+
         {/* Right side: auth */}
         <div className="flex items-center gap-3">
           {isLoading ? (

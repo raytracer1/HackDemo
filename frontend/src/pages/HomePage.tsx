@@ -79,15 +79,15 @@ export default function HomePage() {
                   Sign in to create a demo
                 </Link>
               )}
-              <a
-                href="#features"
+              <Link
+                to="/pricing"
                 className="inline-flex items-center gap-2 rounded-xl border border-gray-700 px-8 py-3.5 text-base font-medium text-gray-300 no-underline transition-colors hover:border-gray-500 hover:text-white"
               >
                 Learn more
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
-              </a>
+              </Link>
             </div>
           </div>
         </section>
