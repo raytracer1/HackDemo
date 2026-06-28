@@ -42,6 +42,14 @@ export default function LoginPage() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Registration failed');
+        // Don't sign in — user must verify email first
+        setError('');
+        setSubmitting(false);
+        setMode('login');
+        setPassword('');
+        setConfirm('');
+        alert('Account created! Please check your email to verify before signing in.');
+        return;
       }
 
       // Sign in with credentials via Auth.js
