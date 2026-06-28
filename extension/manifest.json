@@ -1,8 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "HackDemo",
+  "name": "HackDemo — AI Demo Recorder",
+  "short_name": "HackDemo",
   "version": "1.0.0",
-  "description": "Record browser demos with AI-powered narration and video export",
+  "description": "Record your browser workflow and turn clicks into narrated, annotated demo videos with AI.",
+  "homepage_url": "https://hackdemo.win",
+  "minimum_chrome_version": "116",
   "permissions": [
     "storage",
     "activeTab",
