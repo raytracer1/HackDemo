@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { query } from '../db/index.js';
 import { getUploadUrl, getR2Url, uploadAudio } from '../services/storage.js';
 import type { StepItem, DemoResponse } from '../shared/types.js';
-import { verifyApiToken } from '../auth/token.js';
+import { authenticate } from '../auth/token.js';
 
 // ── Routes ──
 
@@ -22,16 +22,12 @@ export default async function demoRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Missing title or steps' });
     }
 
-    // Require authentication — extension sends API token
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ error: 'Authentication required. Sign in at hack-demo-sooty.vercel.app first.' });
+    // Require authentication
+    const auth = await authenticate(request.headers.authorization);
+    if (!auth) {
+      return reply.status(401).send({ error: 'Authentication required.' });
     }
-    const tokenPayload = await verifyApiToken(authHeader.slice(7));
-    if (!tokenPayload) {
-      return reply.status(401).send({ error: 'Invalid or expired token.' });
-    }
-    const userId = tokenPayload.sub;
+    const userId = auth.sub;
 
     const demoId = uuidv4();
     const videoKey = `demos/${demoId}/recording.webm`;
@@ -72,6 +68,9 @@ export default async function demoRoutes(fastify: FastifyInstance) {
    * POST /api/demos/:id/confirm — screenshots uploaded, start processing.
    */
   fastify.post('/api/demos/:id/confirm', async (request, reply) => {
+    const auth = await authenticate(request.headers.authorization);
+    if (!auth) return reply.status(401).send({ error: 'Authentication required.' });
+
     const { id } = request.params as { id: string };
 
     const result = await query(`SELECT * FROM demos WHERE id = $1`, [id]);
@@ -97,6 +96,9 @@ export default async function demoRoutes(fastify: FastifyInstance) {
    * PUT /api/demos/:id — internal: worker updates status/steps
    */
   fastify.put('/api/demos/:id', async (request, reply) => {
+    const auth = await authenticate(request.headers.authorization);
+    if (!auth) return reply.status(401).send({ error: 'Authentication required.' });
+
     const { id } = request.params as { id: string };
     const body = request.body as any;
     if (!body || !body.status) return reply.status(400).send({ error: 'Missing status' });
@@ -114,6 +116,9 @@ export default async function demoRoutes(fastify: FastifyInstance) {
    * Body: { index: number, audio: base64 string, duration_ms: number }
    */
   fastify.post('/api/demos/:id/audio', async (request, reply) => {
+    const auth = await authenticate(request.headers.authorization);
+    if (!auth) return reply.status(401).send({ error: 'Authentication required.' });
+
     const { id } = request.params as { id: string };
     const body = request.body as any;
     if (!body || body.index === undefined || !body.audio) {
@@ -128,6 +133,9 @@ export default async function demoRoutes(fastify: FastifyInstance) {
    * GET /api/demos?status=pending — worker polls for unprocessed demos
    */
   fastify.get('/api/demos', async (request, reply) => {
+    const auth = await authenticate(request.headers.authorization);
+    if (!auth) return reply.status(401).send({ error: 'Authentication required.' });
+
     const status = (request.query as any).status;
     if (status === 'pending') {
       const result = await query(

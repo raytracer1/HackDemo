@@ -272,8 +272,10 @@ async function handleRecordingData(rawEvents, rawSteps) {
     }
 
     // Confirm
+    var confirmHeaders = { 'Content-Type': 'application/json' };
+    if (token) confirmHeaders['Authorization'] = 'Bearer ' + token;
     var confirmResp = await fetch(backendUrl + '/api/demos/' + demoId + '/confirm', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      method: 'POST', headers: confirmHeaders, body: '{}',
     });
     console.log('[HackDemo] Confirm status:', confirmResp.status);
   } catch (err) {

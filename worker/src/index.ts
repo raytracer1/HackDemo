@@ -2,10 +2,18 @@ import 'dotenv/config';
 import * as Ably from 'ably';
 
 const BACKEND = process.env.BACKEND_URL || 'http://localhost:3001';
+const WORKER_SECRET = process.env.WORKER_SECRET || '';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${WORKER_SECRET}`,
+  };
+}
 
 // ── Backend API helpers ──
 async function getDemo(id: string): Promise<any> {
-  const resp = await fetch(`${BACKEND}/api/demos/${id}`);
+  const resp = await fetch(`${BACKEND}/api/demos/${id}`, { headers: authHeaders() });
   if (!resp.ok) throw new Error(`GET demo failed: ${resp.status}`);
   return resp.json();
 }
@@ -14,7 +22,7 @@ async function updateDemo(id: string, status: string, steps?: any[]) {
   const body: any = { status };
   if (steps) body.steps = steps;
   const resp = await fetch(`${BACKEND}/api/demos/${id}`, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    method: 'PUT', headers: authHeaders(), body: JSON.stringify(body),
   });
   if (!resp.ok) throw new Error(`PUT demo failed: ${resp.status}`);
 }
@@ -248,7 +256,7 @@ function splitText(text: string, maxLen: number): string[] {
 async function uploadAudio(demoId: string, index: number, buffer: Buffer, durationMs: number): Promise<string> {
   const resp = await fetch(`${BACKEND}/api/demos/${demoId}/audio`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ index, audio: buffer.toString('base64'), duration_ms: durationMs }),
   });
   if (!resp.ok) throw new Error(`Audio upload failed: ${resp.status}`);
@@ -315,7 +323,7 @@ function schedulePoll() {
 
 async function pollPending() {
   try {
-    const resp = await fetch(`${BACKEND}/api/demos?status=pending`);
+    const resp = await fetch(`${BACKEND}/api/demos?status=pending`, { headers: authHeaders() });
     if (!resp.ok) return false;
     const demos = await resp.json() as any[];
     for (const demo of demos) {
