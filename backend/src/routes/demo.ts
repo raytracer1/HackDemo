@@ -10,9 +10,29 @@ import { authenticate } from '../auth/token.js';
 export default async function demoRoutes(fastify: FastifyInstance) {
 
   /**
+   * GET /api/demos/:id/credits — worker checks user balance before processing.
+   */
+  fastify.get('/api/demos/:id/credits', async (request, reply) => {
+    const auth = await authenticate(request.headers.authorization);
+    if (!auth) return reply.status(401).send({ error: 'Authentication required.' });
+
+    const { id } = request.params as { id: string };
+    const demo = await query(
+      `SELECT d.user_id, u.credits FROM demos d LEFT JOIN users u ON d.user_id = u.id WHERE d.id = $1`,
+      [id],
+    );
+    const row = demo.rows?.[0];
+    if (!row) return reply.status(404).send({ error: 'Demo not found' });
+    return reply.send({
+      userId: row.user_id,
+      credits: row.credits ? parseFloat(row.credits) : 0,
+      minCredits: parseFloat(process.env.MIN_CREDITS || '0.10'),
+    });
+  });
+
+  /**
    * POST /api/demos — JSON only, no files.
    * Returns pre-signed R2 upload URLs for each screenshot.
-   * Optional: Authorization: Bearer <token> binds demo to a user.
    */
   fastify.post('/api/demos', async (request, reply) => {
     const body = request.body as any;
@@ -93,6 +113,41 @@ export default async function demoRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * POST /api/demos/:id/retry — user retries a failed demo after topping up credits.
+   */
+  fastify.post('/api/demos/:id/retry', async (request, reply) => {
+    const auth = await authenticate(request.headers.authorization);
+    if (!auth) return reply.status(401).send({ error: 'Authentication required.' });
+
+    const { id } = request.params as { id: string };
+    const result = await query(`SELECT * FROM demos WHERE id = $1`, [id]);
+    if (!result.rows?.length) return reply.status(404).send({ error: 'Demo not found' });
+
+    const demo = result.rows[0];
+
+    // Only allow retry for failed demos that belong to this user
+    if (demo.status !== 'failed') {
+      return reply.status(400).send({ error: 'Demo is not in failed state' });
+    }
+    if (auth.role === 'user' && demo.user_id !== auth.sub) {
+      return reply.status(403).send({ error: 'Not your demo' });
+    }
+
+    // Reset to processing so the worker picks it up
+    await query(`UPDATE demos SET status = 'processing', tokens_charged = false, updated_at = now() WHERE id = $1`, [id]);
+
+    // Notify worker via Ably
+    try {
+      const Ably = await import('ably');
+      const ably = new Ably.Realtime({ key: process.env.ABLY_API_KEY || '' });
+      await ably.channels.get('hackdemo-jobs').publish('new-demo', { demoId: id });
+      ably.close();
+    } catch (_) {}
+
+    return reply.send({ id, status: 'processing' });
+  });
+
+  /**
    * PUT /api/demos/:id — internal: worker updates status/steps
    */
   fastify.put('/api/demos/:id', async (request, reply) => {
@@ -103,10 +158,35 @@ export default async function demoRoutes(fastify: FastifyInstance) {
     const body = request.body as any;
     if (!body || !body.status) return reply.status(400).send({ error: 'Missing status' });
 
+    // Charge for AI tokens if this update includes narration
+    if (body.token_count && body.token_count > 0) {
+      const demo = await query(`SELECT user_id, tokens_charged FROM demos WHERE id = $1`, [id]);
+      const row = demo.rows?.[0];
+      if (row && !row.tokens_charged && row.user_id) {
+        const rate = parseFloat(process.env.AI_TOKEN_RATE || '0.000005');
+        const cost = body.token_count * rate;
+        await query(
+          `UPDATE users SET credits = credits - $1, updated_at = now() WHERE id = $2 AND credits >= $1`,
+          [cost, row.user_id],
+        );
+        await query(
+          `UPDATE demos SET token_count = $1, tokens_charged = true WHERE id = $2`,
+          [body.token_count, id],
+        );
+        console.log(`[Billing] Demo ${id}: ${body.token_count} tokens → $${cost.toFixed(6)}`);
+      }
+    }
+
     if (body.steps) {
-      await query(`UPDATE demos SET status = $1, steps = $2, updated_at = now() WHERE id = $3`, [body.status, JSON.stringify(body.steps), id]);
+      await query(
+        `UPDATE demos SET status = $1, steps = $2, fail_reason = COALESCE($4, fail_reason), updated_at = now() WHERE id = $3`,
+        [body.status, JSON.stringify(body.steps), id, body.fail_reason || null],
+      );
     } else {
-      await query(`UPDATE demos SET status = $1, updated_at = now() WHERE id = $2`, [body.status, id]);
+      await query(
+        `UPDATE demos SET status = $1, fail_reason = COALESCE($3, fail_reason), updated_at = now() WHERE id = $2`,
+        [body.status, id, body.fail_reason || null],
+      );
     }
     return reply.send({ id, status: body.status });
   });
@@ -188,6 +268,8 @@ export default async function demoRoutes(fastify: FastifyInstance) {
       steps,
       language: demo.language || 'English (US)',
       demoType: demo.demo_type || 'product-demo',
+      failReason: demo.fail_reason || null,
+      minCredits: parseFloat(process.env.MIN_CREDITS || '0.10'),
     };
 
     return reply.send(response);

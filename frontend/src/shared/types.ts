@@ -4,6 +4,8 @@ export interface DemoData {
   status: string;
   videoUrl?: string;
   steps: StepData[];
+  failReason?: string | null;
+  minCredits?: number;
 }
 
 export interface Highlight {

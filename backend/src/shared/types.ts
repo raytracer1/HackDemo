@@ -58,6 +58,8 @@ export interface DemoResponse {
   steps: StepResponse[];
   language?: string;
   demoType?: string;
+  failReason?: string | null;
+  minCredits?: number;
 }
 
 export interface StepResponse {

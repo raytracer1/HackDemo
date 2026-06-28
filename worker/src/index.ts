@@ -18,9 +18,25 @@ async function getDemo(id: string): Promise<any> {
   return resp.json();
 }
 
+async function getCredits(id: string): Promise<{ credits: number; minCredits: number }> {
+  const resp = await fetch(`${BACKEND}/api/demos/${id}/credits`, { headers: authHeaders() });
+  if (!resp.ok) throw new Error(`Credits check failed: ${resp.status}`);
+  const data = await resp.json() as any;
+  return {
+    credits: data.credits || 0,
+    minCredits: data.minCredits || 0.10,
+  };
+}
+
 async function updateDemo(id: string, status: string, steps?: any[]) {
+  await updateDemoWithTokens(id, status, steps, 0);
+}
+
+async function updateDemoWithTokens(id: string, status: string, steps: any[] | undefined, tokenCount: number, failReason?: string) {
   const body: any = { status };
   if (steps) body.steps = steps;
+  if (tokenCount > 0) body.token_count = tokenCount;
+  if (failReason) body.fail_reason = failReason;
   const resp = await fetch(`${BACKEND}/api/demos/${id}`, {
     method: 'PUT', headers: authHeaders(), body: JSON.stringify(body),
   });
@@ -28,7 +44,7 @@ async function updateDemo(id: string, status: string, steps?: any[]) {
 }
 
 // ── DeepSeek ──
-async function generateNarration(steps: any[], language?: string, demoType?: string): Promise<string[]> {
+async function generateNarration(steps: any[], language?: string, demoType?: string): Promise<{ narrations: string[]; totalTokens: number }> {
   const apiKey = process.env.DEEPSEEK_API_KEY!;
   const lang = language || 'English (US)';
   const type = (demoType || 'product-demo').replace(/-/g, ' ');
@@ -54,6 +70,9 @@ async function generateNarration(steps: any[], language?: string, demoType?: str
   }
 
   const data = await resp.json() as any;
+  const usage = data.usage;
+  const totalTokens: number = usage?.total_tokens || 0;
+  console.log('[Worker] DeepSeek tokens:', JSON.stringify(usage));
   console.log('[Worker] DeepSeek full response:', JSON.stringify(data).slice(0, 800));
   const content = data.choices?.[0]?.message?.content || '';
   if (!content) throw new Error('DeepSeek returned empty content');
@@ -71,7 +90,7 @@ async function generateNarration(steps: any[], language?: string, demoType?: str
   if (narrations.length < steps.length) {
     while (narrations.length < steps.length) narrations.push('Demo step ' + (narrations.length + 1));
   }
-  return narrations.slice(0, steps.length);
+  return { narrations: narrations.slice(0, steps.length), totalTokens };
 }
 
 // ── MP3 duration ──
@@ -275,13 +294,21 @@ async function processDemo(demoId: string): Promise<void> {
   const demoType = demo.demo_type || 'product-demo';
 
   try {
+    // Check credits before spending AI tokens
+    const { credits, minCredits } = await getCredits(demoId);
+    if (credits < minCredits) {
+      console.log(`[Worker] Insufficient credits: $${credits} < $${minCredits}`);
+      await updateDemoWithTokens(demoId, 'failed', null, 0, 'insufficient_credits');
+      return;
+    }
+
     // Step 1: Narration
     console.log(`[Worker] Narration...`);
     await updateDemo(demoId, 'processing_narration');
-    const narrations = await generateNarration(steps, language, demoType);
+    const { narrations, totalTokens } = await generateNarration(steps, language, demoType);
     for (let i = 0; i < steps.length; i++) steps[i].narration = narrations[i];
-    await updateDemo(demoId, 'narration_done', steps);
-    console.log(`[Worker] Narration done`);
+    await updateDemoWithTokens(demoId, 'narration_done', steps, totalTokens);
+    console.log(`[Worker] Narration done (${totalTokens} tokens)`);
 
     // Step 2: Voiceover
     console.log(`[Worker] Voiceover...`);
@@ -304,7 +331,7 @@ async function processDemo(demoId: string): Promise<void> {
     console.log(`[Worker] Complete`);
   } catch (err: any) {
     console.error(`[Worker] Failed:`, err.message);
-    await updateDemo(demoId, 'failed');
+    await updateDemoWithTokens(demoId, 'failed', null, 0, 'ai_processing_error');
   }
 }
 

@@ -106,7 +106,34 @@ export default function DemoPage() {
     );
   }
 
-  const isProcessing = demo.status !== 'completed';
+  const isProcessing = demo.status !== 'completed' && demo.status !== 'failed';
+  const isFailed = demo.status === 'failed';
+  const [retrying, setRetrying] = useState(false);
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    try {
+      // Get a fresh API token
+      const tokenRes = await fetch('/api/auth/token', { credentials: 'include' });
+      if (!tokenRes.ok) throw new Error('Not authenticated');
+      const tokenData = await tokenRes.json();
+
+      const resp = await fetch(`/api/demos/${demoId}/retry`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokenData.token}`,
+        },
+      });
+      if (!resp.ok) throw new Error('Retry failed');
+      // Reload to see updated status
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message || 'Retry failed');
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -124,6 +151,14 @@ export default function DemoPage() {
             Processing on server... ({demo.status.replace(/_/g, ' ')})
           </div>
         )}
+        {isFailed && (
+          <div className="flex items-center gap-2 text-red-400 text-sm">
+            <span className="w-2 h-2 rounded-full bg-red-400" />
+            {demo.failReason === 'insufficient_credits'
+              ? `Processing failed — balance below $${(demo.minCredits ?? 0.10).toFixed(2)}. Please top up and retry.`
+              : `Processing failed — ${demo.failReason || 'unknown error'}. Please retry.`}
+          </div>
+        )}
       </header>
 
       {/* Video area */}
@@ -132,7 +167,39 @@ export default function DemoPage() {
           <VideoPlayer src={videoUrl} poster={stepsWithFrames[0]?.screenshotUrl} />
         ) : (
           <div className="aspect-video bg-gray-900 rounded-xl border border-gray-800 flex flex-col items-center justify-center gap-4">
-            {isProcessing ? (
+            {isFailed ? (
+              demo.failReason === 'insufficient_credits' ? (
+                <>
+                  <div className="text-4xl">💰</div>
+                  <p className="text-gray-300 text-sm font-medium">Insufficient credits to generate narration</p>
+                  <p className="text-gray-500 text-xs">
+                    Your balance is below ${(demo.minCredits ?? 0.10).toFixed(2)}. Top up your credits to continue.
+                  </p>
+                  <button
+                    onClick={handleRetry}
+                    disabled={retrying}
+                    className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 rounded-lg font-medium transition-colors text-sm"
+                  >
+                    {retrying ? 'Retrying...' : 'Retry Processing'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="text-4xl">⚠️</div>
+                  <p className="text-gray-300 text-sm font-medium">Processing failed</p>
+                  <p className="text-gray-500 text-xs">
+                    {demo.failReason || 'An unknown error occurred.'}
+                  </p>
+                  <button
+                    onClick={handleRetry}
+                    disabled={retrying}
+                    className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 rounded-lg font-medium transition-colors text-sm"
+                  >
+                    {retrying ? 'Retrying...' : 'Retry'}
+                  </button>
+                </>
+              )
+            ) : isProcessing ? (
               <>
                 <div className="w-10 h-10 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
                 <p className="text-gray-400 text-sm">

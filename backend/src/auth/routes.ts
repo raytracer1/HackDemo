@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Auth } from '@auth/core';
 import { authConfig, AUTH_URL } from './index.js';
 import { createApiToken } from './token.js';
+import { query } from '../db/index.js';
 
 /**
  * Convert a Fastify request into a standard Web Request.
@@ -80,6 +81,37 @@ async function applyResponse(reply: FastifyReply, response: Response) {
 }
 
 export default async function authRoutes(fastify: FastifyInstance) {
+  /**
+   * GET /api/auth/credits-info — returns the current user's balance + min threshold.
+   * Frontend uses this to show the user their status in the header dropdown.
+   */
+  fastify.get('/api/auth/credits-info', async (request, reply) => {
+    const sessionUrl = new URL('/api/auth/session', AUTH_URL);
+    const headers = new Headers();
+    const cookieHeader = request.headers.cookie;
+    if (cookieHeader) headers.set('cookie', cookieHeader);
+
+    const sessionReq = new Request(sessionUrl, { method: 'GET', headers });
+    const sessionRes = await Auth(sessionReq, authConfig);
+
+    if (sessionRes.status !== 200) {
+      return reply.status(401).send({ error: 'Not authenticated' });
+    }
+
+    const sessionData = await sessionRes.json();
+    const user = sessionData?.user;
+    if (!user?.email) {
+      return reply.status(401).send({ error: 'Not authenticated' });
+    }
+
+    // Get credits from DB
+    const result = await query(`SELECT credits FROM users WHERE email = $1`, [user.email]);
+    const credits = result.rows?.[0] ? parseFloat(result.rows[0].credits) : 0;
+    const minCredits = parseFloat(process.env.MIN_CREDITS || '0.10');
+
+    return reply.send({ credits, minCredits });
+  });
+
   /**
    * GET /api/auth/token — returns an API token for the current session.
    * The frontend passes this token to the extension for authenticated API calls.
