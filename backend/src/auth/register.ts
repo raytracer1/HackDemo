@@ -1,10 +1,11 @@
 import crypto from 'crypto';
 import { FastifyInstance } from 'fastify';
+import { Resend } from 'resend';
 import { query } from '../db/index.js';
 
 const WELCOME_CREDITS = 0.5;
-const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@hackdemo.win';
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 function hashPassword(password: string): string {
@@ -21,33 +22,24 @@ function verifyPassword(password: string, stored: string): boolean {
 
 export { hashPassword, verifyPassword };
 
-async function sendEmail(to: string, subject: string, html: string, text: string): Promise<boolean> {
-  if (!RESEND_API_KEY) {
+async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+  if (!resend) {
     console.warn('[Email] RESEND_API_KEY not configured, skipping send');
     return false;
   }
   try {
-    const resp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: `HackDemo <${EMAIL_FROM}>`,
-        to,
-        subject,
-        html,
-        text,
-      }),
+    const { error } = await resend.emails.send({
+      from: `HackDemo <${EMAIL_FROM}>`,
+      to,
+      subject,
+      html,
     });
-    const data = await resp.json() as any;
-    if (resp.ok) {
-      console.log(`[Email] Sent "${subject}" to ${to}`);
-      return true;
+    if (error) {
+      console.error('[Email] Error:', error.message);
+      return false;
     }
-    console.error('[Email] Failed:', JSON.stringify(data));
-    return false;
+    console.log(`[Email] Sent "${subject}" to ${to}`);
+    return true;
   } catch (err: any) {
     console.error('[Email] Error:', err.message);
     return false;
@@ -98,8 +90,7 @@ export default async function registerRoutes(fastify: FastifyInstance) {
     sendEmail(
       email,
       'Verify your HackDemo account',
-      `<h2>Welcome to HackDemo!</h2><p>Click the link below to verify your email address:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p><p>This link expires in 24 hours.</p>`,
-      `Welcome to HackDemo! Verify your email: ${verifyUrl}`,
+      `<h2>Welcome to HackDemo!</h2><p>Click the link below to verify your email address:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`,
     );
 
     console.log(`🎉 New user "${email}" registered`);
