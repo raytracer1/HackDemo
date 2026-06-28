@@ -27,7 +27,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-10 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-hack-primary text-xl font-bold text-white">HD</div>
+          <img src="/img/normal.png" alt="HackDemo" className="mx-auto mb-4 h-14 w-14 rounded-xl" />
           <h1 className="text-2xl font-bold text-gray-900">Welcome to HackDemo</h1>
           <p className="mt-2 text-sm text-gray-500">Sign in to record and share product demos</p>
         </div>
