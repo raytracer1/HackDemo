@@ -20,6 +20,7 @@ export default function DemoPage() {
   const [synthesisError, setSynthesisError] = useState<string | null>(null);
   const [frameUrls, setFrameUrls] = useState<Record<number, string>>({});
   const [extractingFrames, setExtractingFrames] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   // Extract frames from video when demo loads
   useEffect(() => {
@@ -108,7 +109,6 @@ export default function DemoPage() {
 
   const isProcessing = demo.status !== 'completed' && demo.status !== 'failed';
   const isFailed = demo.status === 'failed';
-  const [retrying, setRetrying] = useState(false);
 
   const handleRetry = async () => {
     setRetrying(true);
