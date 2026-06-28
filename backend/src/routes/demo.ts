@@ -170,6 +170,11 @@ export default async function demoRoutes(fastify: FastifyInstance) {
           [cost, row.user_id],
         );
         await query(
+          `INSERT INTO transactions (id, user_id, type, amount, description)
+           VALUES ($1, $2, 'ai_usage', $3, $4)`,
+          [crypto.randomUUID(), row.user_id, -cost, `AI narration — demo ${id} (${body.token_count} tokens)`],
+        );
+        await query(
           `UPDATE demos SET token_count = $1, tokens_charged = true WHERE id = $2`,
           [body.token_count, id],
         );

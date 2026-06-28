@@ -108,9 +108,25 @@ export async function getClient(): Promise<pg.Client> {
       email TEXT NOT NULL,
       name TEXT,
       image TEXT,
+      type TEXT DEFAULT 'google',
       credits DECIMAL(20,8) DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT now(),
       updated_at TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+
+  try { await client.query(`ALTER TABLE users ADD COLUMN type TEXT DEFAULT 'google'`); } catch (_) {}
+
+  // Transactions table (credit audit trail)
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS transactions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      amount DECIMAL(20,8) NOT NULL,
+      description TEXT,
+      paypal_order_id TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
     )
   `);
 

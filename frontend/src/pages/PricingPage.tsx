@@ -1,20 +1,37 @@
+import { useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 
-// $9.90 / $0.03 per avg 3-min demo ≈ 330 demos
 const PACK_PRICE = 9.90;
 const EST_DEMOS = 330;
 
+const API_BASE = import.meta.env.VITE_BACKEND_URL || '';
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || '';
+
+async function fetchApiToken(): Promise<string | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/token`, { credentials: 'include' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.token || null;
+  } catch {
+    return null;
+  }
+}
+
 export default function PricingPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, refresh } = useAuth();
+  const [purchased, setPurchased] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
 
-      <main className="flex flex-1 items-start justify-center px-4 pt-12">
+      <main className="flex flex-1 items-center justify-center px-4">
         <div className="w-full max-w-sm">
           {/* Free trial banner */}
           <div className="mb-6 rounded-xl border border-hack-primary/30 bg-hack-primary/5 px-4 py-3 text-center">
@@ -66,12 +83,61 @@ export default function PricingPage() {
               </div>
             </div>
 
-            <button
-              disabled
-              className="mt-6 w-full cursor-not-allowed rounded-xl bg-gray-800 px-6 py-3 text-sm font-semibold text-gray-500"
-            >
-              Purchase (coming soon)
-            </button>
+            {/* Purchase */}
+            <div className="mt-6">
+              {purchased ? (
+                <div className="rounded-xl bg-hack-success/10 px-4 py-3 text-sm text-hack-success">
+                  Purchase successful! Credits added to your account.
+                </div>
+              ) : error ? (
+                <div className="rounded-xl bg-hack-danger/10 px-4 py-3 text-sm text-hack-danger">
+                  {error}
+                </div>
+              ) : isAuthenticated && PAYPAL_CLIENT_ID ? (
+                <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'USD' }}>
+                  <PayPalButtons
+                    style={{ layout: 'vertical', shape: 'pill', color: 'gold' }}
+                    createOrder={async () => {
+                      const token = await fetchApiToken();
+                      if (!token) throw new Error('Not authenticated');
+                      const res = await fetch(`${API_BASE}/api/paypal/create-order`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: '{}',
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || 'Failed');
+                      return data.id;
+                    }}
+                    onApprove={async (data) => {
+                      const token = await fetchApiToken();
+                      if (!token) throw new Error('Not authenticated');
+                      const res = await fetch(`${API_BASE}/api/paypal/capture-order`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ orderId: data.orderID }),
+                      });
+                      const result = await res.json();
+                      if (!res.ok) throw new Error(result.error || 'Capture failed');
+                      if (result.status === 'COMPLETED') {
+                        setPurchased(true);
+                        await refresh(); // Update credits in header immediately
+                      }
+                    }}
+                    onError={() => setError('Payment failed. Please try again.')}
+                  />
+                </PayPalScriptProvider>
+              ) : isAuthenticated ? (
+                <p className="text-xs text-gray-500">PayPal not configured</p>
+              ) : (
+                <Link
+                  to="/login"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-hack-primary px-6 py-3 text-sm font-semibold text-white no-underline transition-all hover:bg-indigo-500 active:scale-95"
+                >
+                  Sign in to purchase
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </main>

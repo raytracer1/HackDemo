@@ -6,45 +6,51 @@ const WELCOME_CREDITS = 0.5; // USD
 /**
  * Ensure a user row exists for the given Google profile.
  * Returns the user row (id, credits, isNew).
+ * Uses email as the lookup key; generates our own UUID as primary key.
  */
 async function upsertUser(profile: {
-  sub: string;
   email: string;
   name?: string | null;
   picture?: string | null;
 }): Promise<{ id: string; credits: number; isNew: boolean }> {
-  const existing = await query(`SELECT id, credits FROM users WHERE id = $1`, [profile.sub]);
+  const existing = await query(`SELECT id, credits FROM users WHERE email = $1`, [profile.email]);
 
   if (existing.rows && existing.rows.length > 0) {
-    // Existing user — update profile info (name / image may have changed)
+    // Existing user — update profile info
+    const row = existing.rows[0];
     await query(
       `UPDATE users SET name = $1, image = $2, updated_at = now() WHERE id = $3`,
-      [profile.name || null, profile.picture || null, profile.sub],
+      [profile.name || null, profile.picture || null, row.id],
     );
-    const row = existing.rows[0];
     return {
-      id: profile.sub,
+      id: row.id,
       credits: parseFloat(row.credits) || 0,
       isNew: false,
     };
   }
 
-  // New user — create with welcome credits
+  // New user — generate our own UUID, set type = 'google'
+  const userId = crypto.randomUUID();
   await query(
-    `INSERT INTO users (id, email, name, image, credits)
-     VALUES ($1, $2, $3, $4, $5)`,
+    `INSERT INTO users (id, email, name, image, type, credits)
+     VALUES ($1, $2, $3, $4, 'google', $5)`,
     [
-      profile.sub,
+      userId,
       profile.email,
       profile.name || null,
       profile.picture || null,
       WELCOME_CREDITS,
     ],
   );
+  await query(
+    `INSERT INTO transactions (id, user_id, type, amount, description)
+     VALUES ($1, $2, 'welcome_bonus', $3, $4)`,
+    [crypto.randomUUID(), userId, WELCOME_CREDITS, 'Welcome bonus for new sign-up'],
+  );
 
   console.log(`🎉 New user "${profile.email}" — granted $${WELCOME_CREDITS}`);
 
-  return { id: profile.sub, credits: WELCOME_CREDITS, isNew: true };
+  return { id: userId, credits: WELCOME_CREDITS, isNew: true };
 }
 
 // ── Auth.js callbacks ──
@@ -77,9 +83,7 @@ export const callbacks: AuthConfig['callbacks'] = {
     }
 
     try {
-      // Cast: Google provider always gives us these fields
       await upsertUser({
-        sub: (profile as any).sub || profile.email, // fallback
         email: profile.email,
         name: (profile as any).name || profile.email?.split('@')[0],
         picture: (profile as any).picture || null,
@@ -133,6 +137,7 @@ export const callbacks: AuthConfig['callbacks'] = {
    */
   async session({ session, token }) {
     if (session.user) {
+      (session.user as any).id = token.dbUserId;
       (session.user as any).credits = token.credits ?? 0;
     }
     return session;

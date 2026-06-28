@@ -19,6 +19,8 @@ interface AuthState {
   login: () => void;
   /** Sign out via Auth.js endpoint, then redirect home */
   logout: () => void;
+  /** Re-fetch session to get latest credits */
+  refresh: () => Promise<void>;
 }
 
 // Session shape returned by Auth.js v5 GET /api/auth/session
@@ -113,51 +115,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  async function loadSession() {
+    try {
+      const res = await fetch(api('/api/auth/session'), {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(`Session fetch failed: ${res.status}`);
+
+      const session: SessionResponse | null = await res.json();
+
+      if (session?.user) {
+        const u = session.user;
+        setUser({
+          name: u.name || 'User',
+          email: u.email || '',
+          image: u.image || generateAvatarUrl(u.name || 'User'),
+          credits: u.credits ?? 0,
+        });
+        // Send API token to extension (if installed)
+        sendTokenToExtension({
+          name: u.name || 'User',
+          email: u.email || '',
+          image: u.image || undefined,
+        });
+      } else {
+        setUser(null);
+        // Clear extension auth when session is gone
+        clearExtensionAuth();
+      }
+    } catch {
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   // Fetch current session on mount
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadSession() {
-      try {
-        const res = await fetch(api('/api/auth/session'), {
-          credentials: 'include',
-        });
-        if (!res.ok) throw new Error(`Session fetch failed: ${res.status}`);
-
-        const session: SessionResponse | null = await res.json();
-
-        if (!cancelled) {
-          if (session?.user) {
-            const u = session.user;
-            setUser({
-              name: u.name || 'User',
-              email: u.email || '',
-              image: u.image || generateAvatarUrl(u.name || 'User'),
-              credits: u.credits ?? 0,
-            });
-            // Send API token to extension (if installed)
-            sendTokenToExtension({
-              name: u.name || 'User',
-              email: u.email || '',
-              image: u.image || undefined,
-            });
-          } else {
-            setUser(null);
-            // Clear extension auth when session is gone
-            clearExtensionAuth();
-          }
-        }
-      } catch {
-        if (!cancelled) setUser(null);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
     loadSession();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   const login = useCallback(() => {
@@ -208,6 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         logout,
+        refresh: loadSession,
       }}
     >
       {children}
