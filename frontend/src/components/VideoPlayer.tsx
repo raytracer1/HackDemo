@@ -18,7 +18,7 @@ export default function VideoPlayer({ src, poster }: Props) {
   }, [src]);
 
   return (
-    <div className="rounded-xl overflow-hidden bg-black border border-gray-800">
+    <div className="rounded-xl overflow-hidden bg-black border border-gray-200">
       <video
         ref={videoRef}
         src={src}

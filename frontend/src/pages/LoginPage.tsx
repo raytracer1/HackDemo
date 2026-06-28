@@ -7,66 +7,46 @@ export default function LoginPage() {
   const [clicked, setClicked] = useState(false);
   const [agreed, setAgreed] = useState(false);
 
-  const handleSignIn = () => {
-    setClicked(true);
-    login();
-  };
+  const handleSignIn = () => { setClicked(true); login(); };
 
   if (isAuthenticated && !isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="text-center">
-          <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-hack-success/20">
-            <svg className="h-7 w-7 text-hack-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+          <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+            <svg className="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
           </div>
-          <h1 className="text-xl font-bold text-white">You're signed in</h1>
-          <p className="mt-2 text-gray-400">
-            <Link to="/" className="text-hack-primary hover:underline">Go to home</Link>
-          </p>
+          <h1 className="text-xl font-bold text-gray-900">You're signed in</h1>
+          <p className="mt-2 text-gray-500"><Link to="/" className="text-hack-primary hover:underline">Go to home</Link></p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-10 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-hack-primary text-xl font-bold text-white">HD</div>
-          <h1 className="text-2xl font-bold text-white">Welcome to HackDemo</h1>
-          <p className="mt-2 text-sm text-gray-400">Sign in to record and share product demos</p>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome to HackDemo</h1>
+          <p className="mt-2 text-sm text-gray-500">Sign in to record and share product demos</p>
         </div>
 
-        {/* Agreement checkbox */}
         <label className="mb-4 flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-800 text-hack-primary focus:ring-hack-primary"
-          />
-          <span className="text-xs text-gray-400">
+          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-hack-primary focus:ring-hack-primary" />
+          <span className="text-xs text-gray-500">
             I agree to the{' '}
-            <Link to="/terms" className="text-hack-primary hover:underline" target="_blank">Terms of Service</Link>
-            {' '}and{' '}
+            <Link to="/terms" className="text-hack-primary hover:underline" target="_blank">Terms of Service</Link>{' '}
+            and{' '}
             <Link to="/privacy" className="text-hack-primary hover:underline" target="_blank">Privacy Policy</Link>
           </span>
         </label>
 
-        {/* Google sign-in */}
-        <button
-          onClick={handleSignIn}
-          disabled={clicked || isLoading || !agreed}
-          className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-700 bg-white px-6 py-3.5 text-sm font-semibold text-gray-800 transition-all hover:bg-gray-100 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-        >
+        <button onClick={handleSignIn} disabled={clicked || isLoading || !agreed}
+          className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-3.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed">
           {clicked ? (
             <>
-              <svg className="h-5 w-5 animate-spin text-gray-500" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
+              <svg className="h-5 w-5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
               Redirecting to Google...
             </>
           ) : (

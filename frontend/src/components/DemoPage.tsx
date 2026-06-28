@@ -78,8 +78,8 @@ export default function DemoPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Loading demo...</p>
+          <div className="w-10 h-10 border-2 border-hack-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500">Loading demo...</p>
         </div>
       </div>
     );
@@ -140,7 +140,7 @@ export default function DemoPage() {
       {/* Header */}
       <header className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 rounded bg-indigo-500 flex items-center justify-center text-xs font-bold">
+          <div className="w-8 h-8 rounded bg-hack-primary flex items-center justify-center text-xs font-bold">
             H
           </div>
           <h1 className="text-2xl font-bold">{demo.title || 'HackDemo'}</h1>
@@ -166,19 +166,19 @@ export default function DemoPage() {
         {videoUrl ? (
           <VideoPlayer src={videoUrl} poster={stepsWithFrames[0]?.screenshotUrl} />
         ) : (
-          <div className="aspect-video bg-gray-900 rounded-xl border border-gray-800 flex flex-col items-center justify-center gap-4">
+          <div className="aspect-video bg-white rounded-xl border border-gray-200 flex flex-col items-center justify-center gap-4">
             {isFailed ? (
               demo.failReason === 'insufficient_credits' ? (
                 <>
                   <div className="text-4xl">💰</div>
-                  <p className="text-gray-300 text-sm font-medium">Insufficient credits to generate narration</p>
+                  <p className="text-gray-600 text-sm font-medium">Insufficient credits to generate narration</p>
                   <p className="text-gray-500 text-xs">
                     Your balance is below ${(demo.minCredits ?? 0.10).toFixed(2)}. Top up your credits to continue.
                   </p>
                   <button
                     onClick={handleRetry}
                     disabled={retrying}
-                    className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 rounded-lg font-medium transition-colors text-sm"
+                    className="px-6 py-3 bg-hack-primary hover:bg-indigo-600 disabled:opacity-50 rounded-lg font-medium transition-colors text-sm"
                   >
                     {retrying ? 'Retrying...' : 'Retry Processing'}
                   </button>
@@ -186,14 +186,14 @@ export default function DemoPage() {
               ) : (
                 <>
                   <div className="text-4xl">⚠️</div>
-                  <p className="text-gray-300 text-sm font-medium">Processing failed</p>
+                  <p className="text-gray-600 text-sm font-medium">Processing failed</p>
                   <p className="text-gray-500 text-xs">
                     {demo.failReason || 'An unknown error occurred.'}
                   </p>
                   <button
                     onClick={handleRetry}
                     disabled={retrying}
-                    className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 rounded-lg font-medium transition-colors text-sm"
+                    className="px-6 py-3 bg-hack-primary hover:bg-indigo-600 disabled:opacity-50 rounded-lg font-medium transition-colors text-sm"
                   >
                     {retrying ? 'Retrying...' : 'Retry'}
                   </button>
@@ -202,22 +202,22 @@ export default function DemoPage() {
             ) : isProcessing ? (
               <>
                 <div className="w-10 h-10 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-500 text-sm">
                   AI is generating narration and voiceover...
                 </p>
               </>
             ) : synthesisStatus === 'idle' ? (
               extractingFrames ? (
                 <>
-                  <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                  <p className="text-gray-400 text-sm">Extracting frames from video...</p>
+                  <div className="w-10 h-10 border-2 border-hack-primary border-t-transparent rounded-full animate-spin" />
+                  <p className="text-gray-500 text-sm">Extracting frames from video...</p>
                 </>
               ) : (
                 <>
-                  <p className="text-gray-400 text-sm mb-2">Ready to generate demo video</p>
+                  <p className="text-gray-500 text-sm mb-2">Ready to generate demo video</p>
                   <button
                     onClick={handleGenerateVideo}
-                    className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-medium transition-colors"
+                    className="px-6 py-3 bg-hack-primary hover:bg-indigo-600 rounded-lg font-medium transition-colors"
                   >
                     Generate Video
                   </button>
@@ -239,11 +239,11 @@ export default function DemoPage() {
                   {/* Progress bar */}
                   <div className="w-full bg-gray-800 rounded-full h-2 mb-3">
                     <div
-                      className="bg-indigo-500 h-2 rounded-full transition-all duration-500"
+                      className="bg-hack-primary h-2 rounded-full transition-all duration-500"
                       style={{ width: `${synthesisProgress?.percent || 0}%` }}
                     />
                   </div>
-                  <p className="text-gray-400 text-sm text-center">
+                  <p className="text-gray-500 text-sm text-center">
                     {synthesisProgress?.message || 'Synthesizing...'}
                   </p>
                 </div>

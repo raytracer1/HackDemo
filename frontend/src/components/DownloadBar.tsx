@@ -52,14 +52,14 @@ export default function DownloadBar({ videoBlob, videoUrl, demo }: Props) {
   };
 
   return (
-    <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
       <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
         <span>📥</span> Downloads
       </h3>
       <div className="flex gap-3">
         <button
           onClick={handleDownloadVideo}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-sm font-medium transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-hack-primary hover:bg-indigo-600 rounded-lg text-sm font-medium transition-colors"
         >
           <span>🎬</span>
           <span>Download MP4</span>
@@ -69,7 +69,7 @@ export default function DownloadBar({ videoBlob, videoUrl, demo }: Props) {
         </button>
         <button
           onClick={handleDownloadMarkdown}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 border border-gray-700 rounded-lg text-sm transition-colors"
         >
           <span>📝</span>
           <span>Download Markdown</span>

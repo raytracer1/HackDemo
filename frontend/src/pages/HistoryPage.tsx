@@ -62,8 +62,8 @@ export default function HistoryPage() {
   return (
     <div className="px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl">
-        <h1 className="text-2xl font-bold text-white">History</h1>
-        <p className="mt-1 text-sm text-gray-400">Your recent demos</p>
+        <h1 className="text-2xl font-bold text-gray-900">History</h1>
+        <p className="mt-1 text-sm text-gray-500">Your recent demos</p>
 
         {loading ? (
           <div className="mt-12 flex justify-center">
@@ -79,10 +79,10 @@ export default function HistoryPage() {
               {demos.map(demo => {
                 const badge = statusBadge(demo.status);
                 return (
-                  <Link key={demo.id} to={`/demo/${demo.id}`} className="flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900/50 px-5 py-4 no-underline transition-colors hover:border-gray-700 hover:bg-gray-900">
+                  <Link key={demo.id} to={`/demo/${demo.id}`} className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-5 py-4 no-underline shadow-sm transition-colors hover:border-gray-300 hover:shadow-md">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-white">{demo.title}</p>
-                      <p className="mt-0.5 text-xs text-gray-500">{demo.language} &middot; {new Date(demo.created_at).toLocaleDateString()}</p>
+                      <p className="truncate text-sm font-medium text-gray-900">{demo.title}</p>
+                      <p className="mt-0.5 text-xs text-gray-400">{demo.language} &middot; {new Date(demo.created_at).toLocaleDateString()}</p>
                     </div>
                     <span className={`ml-3 flex-shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.bg} ${badge.text}`}>{badge.label}</span>
                     <svg className="ml-3 h-4 w-4 flex-shrink-0 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
@@ -92,11 +92,11 @@ export default function HistoryPage() {
             </div>
             {totalPages > 1 && (
               <div className="mt-8 flex items-center justify-center gap-2">
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg border border-gray-700 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 disabled:opacity-40">Previous</button>
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40">Previous</button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                  <button key={p} onClick={() => setPage(p)} className={`rounded-lg border px-3 py-2 text-sm ${p === page ? 'border-hack-primary bg-hack-primary/10 text-hack-primary' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}`}>{p}</button>
+                  <button key={p} onClick={() => setPage(p)} className={`rounded-lg border px-3 py-2 text-sm ${p === page ? 'border-hack-primary bg-hack-primary/10 text-hack-primary' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{p}</button>
                 ))}
-                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="rounded-lg border border-gray-700 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 disabled:opacity-40">Next</button>
+                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40">Next</button>
               </div>
             )}
           </>

@@ -36,30 +36,27 @@ export default function HomePage() {
 
   return (
     <>
-      <section className="relative overflow-hidden px-4 pb-20 pt-16 sm:px-6 lg:px-8">
-        <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2">
-          <div className="h-[400px] w-[600px] rounded-full bg-hack-primary/15 blur-[120px]" />
-        </div>
+      <section className="relative overflow-hidden bg-gradient-to-b from-gray-50 to-white px-4 pb-20 pt-16 sm:px-6 lg:px-8">
         <div className="relative mx-auto max-w-3xl text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
             Turn clicks into{' '}
-            <span className="bg-gradient-to-r from-hack-primary to-purple-400 bg-clip-text text-transparent">product demos</span>
+            <span className="bg-gradient-to-r from-hack-primary to-blue-500 bg-clip-text text-transparent">product demos</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-gray-400">
+          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-gray-500">
             Record your workflow once. HackDemo generates narrated, annotated demo videos in multiple languages — ready to share with your team or customers.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             {isAuthenticated ? (
-              <Link to="/demo/loading" className="inline-flex items-center gap-2 rounded-xl bg-hack-primary px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-hack-primary/25 transition-all hover:bg-indigo-500 active:scale-95 no-underline">
+              <Link to="/demo/loading" className="inline-flex items-center gap-2 rounded-xl bg-hack-primary px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-hack-primary/25 no-underline transition-all hover:bg-indigo-600 active:scale-95">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                 Create a Demo
               </Link>
             ) : (
-              <Link to="/login" className="inline-flex items-center gap-2 rounded-xl bg-hack-primary px-8 py-3.5 text-base font-semibold text-white no-underline shadow-lg shadow-hack-primary/25 transition-all hover:bg-indigo-500 active:scale-95">
+              <Link to="/login" className="inline-flex items-center gap-2 rounded-xl bg-hack-primary px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-hack-primary/25 no-underline transition-all hover:bg-indigo-600 active:scale-95">
                 Sign in to create a demo
               </Link>
             )}
-            <Link to="/pricing" className="inline-flex items-center gap-2 rounded-xl border border-gray-700 px-8 py-3.5 text-base font-medium text-gray-300 no-underline transition-colors hover:border-gray-500 hover:text-white">
+            <Link to="/pricing" className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-8 py-3.5 text-base font-medium text-gray-600 no-underline shadow-sm transition-all hover:border-gray-300 hover:text-gray-900">
               Learn more
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </Link>
@@ -67,29 +64,29 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="features" className="border-t border-gray-800 px-4 py-24 sm:px-6 lg:px-8">
+      <section id="features" className="border-t border-gray-100 bg-white px-4 py-24 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-2xl font-bold text-white sm:text-3xl">How it works</h2>
-          <p className="mt-3 text-center text-gray-400">From browser recording to shareable video in minutes.</p>
+          <h2 className="text-center text-2xl font-bold text-gray-900 sm:text-3xl">How it works</h2>
+          <p className="mt-3 text-center text-gray-500">From browser recording to shareable video in minutes.</p>
           <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
-              <div key={f.title} className="group rounded-2xl border border-gray-800 bg-gray-900/50 p-6 transition-all hover:border-gray-700 hover:bg-gray-900">
+              <div key={f.title} className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:border-gray-300 hover:shadow-md">
                 <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-hack-primary/10 text-hack-primary">{f.icon}</div>
-                <h3 className="mb-2 text-base font-semibold text-white">{f.title}</h3>
-                <p className="text-sm leading-relaxed text-gray-400">{f.description}</p>
+                <h3 className="mb-2 text-base font-semibold text-gray-900">{f.title}</h3>
+                <p className="text-sm leading-relaxed text-gray-500">{f.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="border-t border-gray-800 px-4 py-24 sm:px-6 lg:px-8">
+      <section className="border-t border-gray-100 bg-gray-50 px-4 py-24 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-2xl font-bold text-white sm:text-3xl">Ready to create your first demo?</h2>
-          <p className="mt-4 text-gray-400">Install the browser extension, record your workflow, and let HackDemo turn it into a professional demo video.</p>
+          <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">Ready to create your first demo?</h2>
+          <p className="mt-4 text-gray-500">Install the browser extension, record your workflow, and let HackDemo turn it into a professional demo video.</p>
           {isAuthenticated && (
             <div className="mt-8">
-              <Link to="/demo/loading" className="inline-flex items-center gap-2 rounded-xl bg-hack-primary px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-hack-primary/25 transition-all hover:bg-indigo-500 active:scale-95 no-underline">
+              <Link to="/demo/loading" className="inline-flex items-center gap-2 rounded-xl bg-hack-primary px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-hack-primary/25 no-underline transition-all hover:bg-indigo-600 active:scale-95">
                 Get started
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </Link>

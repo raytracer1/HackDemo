@@ -25,28 +25,23 @@ export default function PricingPage() {
   return (
     <div className="flex flex-1 items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
-        <div className="mb-6 rounded-xl border border-hack-primary/30 bg-hack-primary/5 px-4 py-3 text-center">
-          <p className="text-sm text-gray-300">
-            New users get <span className="font-semibold text-white">$0.50 free</span> to try AI narration
+        <div className="mb-6 rounded-xl border border-hack-primary/20 bg-hack-primary/5 px-4 py-3 text-center">
+          <p className="text-sm text-gray-600">
+            New users get <span className="font-semibold text-hack-primary">$0.50 free</span> to try AI narration
           </p>
           {!isAuthenticated && (
-            <Link to="/login" className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-hack-primary no-underline hover:underline">
-              Get started
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-            </Link>
+            <Link to="/login" className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-hack-primary no-underline hover:underline">Get started<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg></Link>
           )}
         </div>
 
-        <div className="rounded-2xl border border-gray-800 bg-gray-900/50 p-8 text-center">
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
           <div className="mb-2 flex items-baseline justify-center gap-1">
-            <span className="text-4xl font-bold text-white">$9.90</span>
+            <span className="text-4xl font-bold text-gray-900">$9.90</span>
           </div>
-          <p className="text-sm text-gray-400">~{EST_DEMOS}+ AI-narrated 3-minute demos</p>
+          <p className="text-sm text-gray-500">~{EST_DEMOS}+ AI-narrated 3-minute demos</p>
 
-          <div className="mt-6 rounded-xl bg-gray-900 p-4">
-            <div className="space-y-2 text-left text-sm text-gray-300">
+          <div className="mt-6 rounded-xl bg-gray-50 p-4">
+            <div className="space-y-2 text-left text-sm text-gray-600">
               <div className="flex items-center gap-2">
                 <svg className="h-4 w-4 flex-shrink-0 text-hack-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 AI narration + voiceover
@@ -64,9 +59,9 @@ export default function PricingPage() {
 
           <div className="mt-6">
             {purchased ? (
-              <div className="rounded-xl bg-hack-success/10 px-4 py-3 text-sm text-hack-success">Purchase successful! Credits added to your account.</div>
+              <div className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-600">Purchase successful! Credits added to your account.</div>
             ) : error ? (
-              <div className="rounded-xl bg-hack-danger/10 px-4 py-3 text-sm text-hack-danger">{error}</div>
+              <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-500">{error}</div>
             ) : isAuthenticated && PAYPAL_CLIENT_ID ? (
               <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: 'USD' }}>
                 <PayPalButtons
@@ -96,7 +91,7 @@ export default function PricingPage() {
                 />
               </PayPalScriptProvider>
             ) : isAuthenticated ? (
-              <p className="text-xs text-gray-500">PayPal not configured</p>
+              <p className="text-xs text-gray-400">PayPal not configured</p>
             ) : (
               <Link to="/login" className="flex w-full items-center justify-center gap-2 rounded-xl bg-hack-primary px-6 py-3 text-sm font-semibold text-white no-underline transition-all hover:bg-indigo-500 active:scale-95">
                 Sign in to purchase
