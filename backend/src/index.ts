@@ -18,10 +18,16 @@ async function main() {
   // CORS: in production, only allow the configured frontend origin.
   // In dev, origin:true reflects whatever origin the browser sends.
   const frontendUrl = process.env.FRONTEND_URL;
+  const allowedOrigins = frontendUrl
+    ? [
+        frontendUrl,
+        frontendUrl.replace('://', '://www.'),  // also allow www subdomain
+        'chrome-extension://*',
+        'moz-extension://*',
+      ]
+    : true;
   await fastify.register(cors, {
-    origin: frontendUrl
-      ? [frontendUrl, 'chrome-extension://*', 'moz-extension://*']
-      : true,
+    origin: allowedOrigins,
     credentials: true,
   });
   await fastify.register(multipart, {
