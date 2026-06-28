@@ -76,7 +76,11 @@ export const callbacks: AuthConfig['callbacks'] = {
    * signIn: called when a user authenticates with a provider.
    * We use it to upsert the user in our database.
    */
-  async signIn({ profile }) {
+  async signIn({ profile, account }) {
+    // Credentials provider: user already created via /register, just allow sign-in
+    if (account?.provider === 'credentials') return true;
+
+    // OAuth providers: upsert user from profile
     if (!profile?.email) {
       console.warn('signIn callback: no email in profile');
       return false;

@@ -7,6 +7,7 @@ import HistoryPage from './pages/HistoryPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import HelpPage from './pages/HelpPage';
+import VerifyPage from './pages/VerifyPage';
 import DemoPage from './components/DemoPage';
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
 
       {/* Login page — no Header/Footer */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/verify" element={<VerifyPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

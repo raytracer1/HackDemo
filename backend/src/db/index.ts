@@ -109,6 +109,9 @@ export async function getClient(): Promise<pg.Client> {
       name TEXT,
       image TEXT,
       type TEXT DEFAULT 'google',
+      password_hash TEXT,
+      email_verified BOOLEAN DEFAULT false,
+      verification_token TEXT,
       credits DECIMAL(20,8) DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT now(),
       updated_at TIMESTAMPTZ DEFAULT now()
@@ -116,6 +119,9 @@ export async function getClient(): Promise<pg.Client> {
   `);
 
   try { await client.query(`ALTER TABLE users ADD COLUMN type TEXT DEFAULT 'google'`); } catch (_) {}
+  try { await client.query(`ALTER TABLE users ADD COLUMN password_hash TEXT`); } catch (_) {}
+  try { await client.query(`ALTER TABLE users ADD COLUMN email_verified BOOLEAN`); } catch (_) {}
+  try { await client.query(`ALTER TABLE users ADD COLUMN verification_token TEXT`); } catch (_) {}
 
   // Transactions table (credit audit trail)
   await client.query(`

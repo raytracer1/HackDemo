@@ -5,6 +5,7 @@ import multipart from '@fastify/multipart';
 import demoRoutes from './routes/demo.js';
 import authRoutes from './auth/routes.js';
 import paypalRoutes from './routes/paypal.js';
+import registerRoutes from './auth/register.js';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
@@ -31,6 +32,7 @@ async function main() {
   });
 
   // Routes
+  await fastify.register(registerRoutes);
   await fastify.register(authRoutes);
   await fastify.register(paypalRoutes);
   await fastify.register(demoRoutes);
