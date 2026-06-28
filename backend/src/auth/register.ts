@@ -59,12 +59,18 @@ export default async function registerRoutes(fastify: FastifyInstance) {
    * POST /api/auth/register — email/password sign-up.
    */
   fastify.post('/api/auth/register', async (request, reply) => {
-    const { name, email, password } = request.body as any;
-    if (!name || !email || !password) {
-      return reply.status(400).send({ error: 'Name, email, and password are required.' });
+    const { email, password } = request.body as any;
+    if (!email || !password) {
+      return reply.status(400).send({ error: 'Email and password are required.' });
     }
-    if (password.length < 6) {
-      return reply.status(400).send({ error: 'Password must be at least 6 characters.' });
+    if (password.length < 8) {
+      return reply.status(400).send({ error: 'Password must be at least 8 characters.' });
+    }
+    if (!/[A-Z]/.test(password)) {
+      return reply.status(400).send({ error: 'Password must contain at least one uppercase letter.' });
+    }
+    if (!/[0-9]/.test(password)) {
+      return reply.status(400).send({ error: 'Password must contain at least one number.' });
     }
 
     const existing = await query(`SELECT id FROM users WHERE email = $1`, [email]);
@@ -79,7 +85,7 @@ export default async function registerRoutes(fastify: FastifyInstance) {
     await query(
       `INSERT INTO users (id, email, name, type, password_hash, verification_token, credits)
        VALUES ($1, $2, $3, 'credentials', $4, $5, $6)`,
-      [userId, email, name, pwHash, verifyToken, WELCOME_CREDITS],
+      [userId, email, email.split('@')[0], pwHash, verifyToken, WELCOME_CREDITS],
     );
     await query(
       `INSERT INTO transactions (id, user_id, type, amount, description)
