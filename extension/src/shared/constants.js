@@ -2,8 +2,8 @@
  * Backend URL for API calls.
  * @type {string}
  */
-export const DEFAULT_BACKEND_URL = 'https://hack-demo-du4z.vercel.app';
-export const DEFAULT_FRONTEND_URL = 'https://hack-demo-sooty.vercel.app';
+export const DEFAULT_BACKEND_URL = 'https://api.hackdemo.win';
+export const DEFAULT_FRONTEND_URL = 'https://hackdemo.win';
 
 /**
  * Maximum gap (ms) between events before starting a new step.
