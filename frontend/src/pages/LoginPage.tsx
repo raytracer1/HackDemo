@@ -54,23 +54,30 @@ export default function LoginPage() {
         return;
       }
 
-      // Sign in with credentials via fetch
-      const callbackUrl = window.location.origin + '/';
-      await fetch(`${API_BASE}/api/auth/callback/credentials`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ email, password, callbackUrl, csrfToken: 'dummy' }).toString(),
-        credentials: 'include',
-      });
+      // Auth.js always redirects after sign-in. Point callbackUrl at the backend's
+      // session endpoint so the redirect stays on api.hackdemo.win (no CORS issue).
+      const callbackUrl = `${API_BASE}/api/auth/session`;
+      let session: any = null;
 
-      // Check if sign-in succeeded (session cookie should be set)
-      const sessionRes = await fetch(`${API_BASE}/api/auth/session`, { credentials: 'include' });
-      if (sessionRes.ok) {
-        const session = await sessionRes.json();
-        if (session?.user) {
-          window.location.href = callbackUrl;
-          return;
-        }
+      try {
+        // On success: Auth.js 302 → session endpoint (same origin, no CORS)
+        const res = await fetch(`${API_BASE}/api/auth/callback/credentials`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ email, password, callbackUrl, csrfToken: 'dummy' }).toString(),
+          credentials: 'include',
+        });
+        session = await res.json();
+      } catch {
+        // On failure: Auth.js 302 → frontend /login (cross-origin, fetch throws).
+        // Cookie may still have been set — check session manually.
+        const sr = await fetch(`${API_BASE}/api/auth/session`, { credentials: 'include' });
+        if (sr.ok) session = await sr.json();
+      }
+
+      if (session?.user) {
+        window.location.href = window.location.origin + '/';
+        return;
       }
       throw new Error('Sign in failed. Check your credentials or verify your email.');
     } catch (err: any) {
