@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Auth } from '@auth/core';
 import { authConfig, AUTH_URL } from './index.js';
+import { createApiToken } from './token.js';
 
 /**
  * Convert a Fastify request into a standard Web Request.
@@ -79,6 +80,45 @@ async function applyResponse(reply: FastifyReply, response: Response) {
 }
 
 export default async function authRoutes(fastify: FastifyInstance) {
+  /**
+   * GET /api/auth/token — returns an API token for the current session.
+   * The frontend passes this token to the extension for authenticated API calls.
+   */
+  fastify.get('/api/auth/token', async (request, reply) => {
+    // Build a Web Request to Auth.js /session using the incoming cookies
+    const sessionUrl = new URL('/api/auth/session', AUTH_URL);
+    const headers = new Headers();
+    const cookieHeader = request.headers.cookie;
+    if (cookieHeader) headers.set('cookie', cookieHeader);
+
+    const sessionReq = new Request(sessionUrl, {
+      method: 'GET',
+      headers,
+    });
+
+    const sessionRes = await Auth(sessionReq, authConfig);
+
+    if (sessionRes.status !== 200) {
+      return reply.status(401).send({ error: 'Not authenticated' });
+    }
+
+    const sessionData = await sessionRes.json();
+    const user = sessionData?.user;
+
+    if (!user?.email) {
+      return reply.status(401).send({ error: 'Not authenticated' });
+    }
+
+    // Create a long-lived API token for the extension
+    const token = await createApiToken({
+      sub: user.id || user.email,
+      email: user.email,
+      name: user.name,
+    });
+
+    return reply.send({ token });
+  });
+
   // Accept form-encoded bodies (for OAuth sign-in POST) as raw strings.
   // Auth.js parses the body itself — we just pass it through.
   fastify.addContentTypeParser(

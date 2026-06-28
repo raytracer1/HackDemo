@@ -46,6 +46,63 @@ function generateAvatarUrl(name: string): string {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`;
 }
 
+// ── Extension bridge ──
+
+/** Pending auth data, sent when content script signals it's ready. */
+let pendingAuthPayload: any = null;
+
+/** Send auth to extension via DOM + postMessage. */
+async function sendTokenToExtension(user: { name: string; email: string; image?: string }) {
+  try {
+    const res = await fetch(api('/api/auth/token'), { credentials: 'include' });
+    if (!res.ok) return;
+
+    const data = await res.json();
+    if (data.token) {
+      pendingAuthPayload = {
+        source: 'hackdemo-web',
+        type: 'AUTH_TOKEN',
+        token: data.token,
+        user: { name: user.name, email: user.email, image: user.image },
+      };
+
+      deliverAuth();
+    }
+  } catch {
+    // Extension not available — that's fine
+  }
+}
+
+function deliverAuth() {
+  if (!pendingAuthPayload) return;
+
+  // 1. DOM data attribute (shared world, survives race conditions)
+  document.documentElement.setAttribute(
+    'data-hackdemo-auth',
+    JSON.stringify(pendingAuthPayload),
+  );
+
+  // 2. postMessage (immediate delivery when CS is already listening)
+  window.postMessage(pendingAuthPayload, window.location.origin);
+}
+
+/** Clear auth data from the extension. */
+function clearExtensionAuth() {
+  document.documentElement.removeAttribute('data-hackdemo-auth');
+  window.postMessage(
+    { source: 'hackdemo-web', type: 'LOGOUT' },
+    window.location.origin,
+  );
+}
+
+// Listen for content script's ready signal
+window.addEventListener('message', function (event) {
+  if (event.data?.source === 'hackdemo-cs' && event.data?.type === 'CS_READY') {
+    // Content script is now listening — deliver pending auth
+    if (pendingAuthPayload) deliverAuth();
+  }
+});
+
 // ── Context ──
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -78,8 +135,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               image: u.image || generateAvatarUrl(u.name || 'User'),
               credits: u.credits ?? 0,
             });
+            // Send API token to extension (if installed)
+            sendTokenToExtension({
+              name: u.name || 'User',
+              email: u.email || '',
+              image: u.image || undefined,
+            });
           } else {
             setUser(null);
+            // Clear extension auth when session is gone
+            clearExtensionAuth();
           }
         }
       } catch {
@@ -113,6 +178,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    // Clear extension auth so it knows the user signed out
+    clearExtensionAuth();
+
     // Use a form POST (same pattern as login) so the browser follows
     // the redirect chain and clears cookies properly.
     const form = document.createElement('form');

@@ -3,8 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { query } from '../db/index.js';
 import { getUploadUrl, getR2Url, uploadAudio } from '../services/storage.js';
 import type { StepItem, DemoResponse } from '../shared/types.js';
-
-// ── Process async ──
+import { verifyApiToken } from '../auth/token.js';
 
 // ── Routes ──
 
@@ -13,6 +12,7 @@ export default async function demoRoutes(fastify: FastifyInstance) {
   /**
    * POST /api/demos — JSON only, no files.
    * Returns pre-signed R2 upload URLs for each screenshot.
+   * Optional: Authorization: Bearer <token> binds demo to a user.
    */
   fastify.post('/api/demos', async (request, reply) => {
     const body = request.body as any;
@@ -21,6 +21,17 @@ export default async function demoRoutes(fastify: FastifyInstance) {
     if (!title || !rawSteps || !Array.isArray(rawSteps) || rawSteps.length === 0) {
       return reply.status(400).send({ error: 'Missing title or steps' });
     }
+
+    // Require authentication — extension sends API token
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.status(401).send({ error: 'Authentication required. Sign in at hack-demo-sooty.vercel.app first.' });
+    }
+    const tokenPayload = await verifyApiToken(authHeader.slice(7));
+    if (!tokenPayload) {
+      return reply.status(401).send({ error: 'Invalid or expired token.' });
+    }
+    const userId = tokenPayload.sub;
 
     const demoId = uuidv4();
     const videoKey = `demos/${demoId}/recording.webm`;
@@ -47,8 +58,8 @@ export default async function demoRoutes(fastify: FastifyInstance) {
     }
 
     await query(
-      `INSERT INTO demos (id, title, status, steps, language, demo_type) VALUES ($1, $2, 'awaiting_upload', $3, $4, $5)`,
-      [demoId, title, JSON.stringify(stepItems), language || 'English', demoType || 'product-demo']
+      `INSERT INTO demos (id, title, status, steps, language, demo_type, user_id) VALUES ($1, $2, 'awaiting_upload', $3, $4, $5, $6)`,
+      [demoId, title, JSON.stringify(stepItems), language || 'English', demoType || 'product-demo', userId]
     );
 
     return reply.status(201).send({

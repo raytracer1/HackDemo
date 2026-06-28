@@ -22,3 +22,4 @@ export const MAX_RECORDING_DURATION_MS = 10 * 60 * 1000;
  */
 export const SESSION_KEY = 'recordingSession';
 export const SETTINGS_KEY = 'appSettings';
+export const TOKEN_KEY = 'apiToken';

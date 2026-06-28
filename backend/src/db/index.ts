@@ -84,6 +84,7 @@ export async function getClient(): Promise<pg.Client> {
       steps JSONB,
       language TEXT DEFAULT 'English',
       demo_type TEXT DEFAULT 'product-demo',
+      user_id TEXT,
       created_at TIMESTAMPTZ DEFAULT now(),
       updated_at TIMESTAMPTZ DEFAULT now()
     )
@@ -92,6 +93,7 @@ export async function getClient(): Promise<pg.Client> {
   // Add columns if table was created before these columns existed
   try { await client.query(`ALTER TABLE demos ADD COLUMN language TEXT DEFAULT 'English'`); } catch (_) {}
   try { await client.query(`ALTER TABLE demos ADD COLUMN demo_type TEXT DEFAULT 'product-demo'`); } catch (_) {}
+  try { await client.query(`ALTER TABLE demos ADD COLUMN user_id TEXT`); } catch (_) {}
 
   // Users table (for Google OAuth sign-in)
   await client.query(`

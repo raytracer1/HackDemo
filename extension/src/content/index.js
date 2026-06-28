@@ -415,6 +415,8 @@ function openPanel() {
     return;
   }
   if (panel) return;
+
+  if (panel) return;
   panel = document.createElement('div');
   panel.id = 'hackdemo-panel';
   renderFullPanel();
@@ -718,8 +720,9 @@ function updatePanelState(data) {
     if (panel) { panel.remove(); panel = null; }
     return;
   }
-  // Close panel + blur when done/completed
-  if (panelState === 'completed' || panelState === 'idle' || panelState === 'error') {
+  // Close panel when transitioning TO idle/error/completed from something else
+  if (prevState !== panelState &&
+      (panelState === 'completed' || panelState === 'idle' || panelState === 'error')) {
     closePanel();
     return;
   }
@@ -815,6 +818,47 @@ async function sendData() {
     steps: steps,
   });
 }
+
+// ── Web app → extension bridge ──
+// The frontend web app sends tokens via window.postMessage and also writes
+// to window.__hackdemo_auth. We pick up both to avoid race conditions.
+
+function forwardAuthToBackground(payload) {
+  if (!payload || payload.source !== 'hackdemo-web') return;
+
+  if (payload.type === 'LOGOUT') {
+    console.log('[HackDemo] Forwarding logout to background');
+    chrome.runtime.sendMessage({ type: 'LOGOUT' }).catch(function () {});
+    return;
+  }
+
+  if (payload.type !== 'AUTH_TOKEN' || !payload.token) return;
+
+  console.log('[HackDemo] Forwarding auth to background');
+  chrome.runtime.sendMessage({
+    type: 'AUTH_TOKEN',
+    token: payload.token,
+    user: payload.user,
+  }).catch(function () {});
+}
+
+// 1. Check DOM for pending auth data (page may have written it before we loaded).
+//    DOM is shared between page and content script worlds.
+var authAttr = document.documentElement.getAttribute('data-hackdemo-auth');
+if (authAttr) {
+  try {
+    forwardAuthToBackground(JSON.parse(authAttr));
+  } catch (e) { /* ignore parse errors */ }
+}
+
+// 2. Signal to the page that content script is ready.
+window.postMessage({ source: 'hackdemo-cs', type: 'CS_READY' }, window.location.origin);
+
+// 3. Listen for postMessage (for real-time auth updates from the page)
+window.addEventListener('message', function (event) {
+  if (event.source !== window) return;
+  forwardAuthToBackground(event.data);
+});
 
 // ── Message handlers ──
 

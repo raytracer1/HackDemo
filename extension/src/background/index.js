@@ -1,4 +1,4 @@
-import { SESSION_KEY, SETTINGS_KEY, DEFAULT_BACKEND_URL, DEFAULT_FRONTEND_URL } from '../shared/constants.js';
+import { SESSION_KEY, SETTINGS_KEY, DEFAULT_BACKEND_URL, DEFAULT_FRONTEND_URL, TOKEN_KEY } from '../shared/constants.js';
 import { startRecording, startScreenCapture, stopRecording, pauseRecording, resumeRecording, getData, getRecordingDuration, getVideoBlob, closeOffscreen } from './recording-manager.js';
 // uploadDemo inline
 
@@ -22,7 +22,8 @@ async function saveSession() {
   }
 }
 
-function updatePopup(event) {
+async function updatePopup(event) {
+  const user = await getUserInfo();
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     if (tabs[0] && tabs[0].id) {
       chrome.tabs.sendMessage(tabs[0].id, {
@@ -33,6 +34,7 @@ function updatePopup(event) {
         error: event.error,
         progress: event.progress,
         recordingDuration: event.recordingDuration,
+        user: user,
       }).catch(function () {});
     }
   });
@@ -65,9 +67,51 @@ function clearBadge() {
   setRecordingIcon(false);
 }
 
+// ── Auth ──
+
+const USER_KEY = 'apiUser';
+
+async function getToken() {
+  const result = await chrome.storage.local.get(TOKEN_KEY);
+  return result[TOKEN_KEY] || null;
+}
+
+async function getUserInfo() {
+  const result = await chrome.storage.local.get(USER_KEY);
+  return result[USER_KEY] || null;
+}
+
+async function saveAuth(token, user) {
+  await chrome.storage.local.set({ [TOKEN_KEY]: token, [USER_KEY]: user });
+  console.log('[HackDemo] Auth saved:', user.name);
+}
+
+async function clearAuth() {
+  await chrome.storage.local.remove([TOKEN_KEY, USER_KEY]);
+  console.log('[HackDemo] Auth cleared');
+}
+
+async function isAuthenticated() {
+  const token = await getToken();
+  return !!token;
+}
+
 // ── Command router ──
 
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
+  // Auth token + user info from web app (via content script bridge)
+  if (msg.type === 'AUTH_TOKEN') {
+    saveAuth(msg.token, msg.user || { name: 'User', email: '' });
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  // Logout from web app
+  if (msg.type === 'LOGOUT') {
+    clearAuth();
+    sendResponse({ ok: true });
+    return true;
+  }
   if (msg.type === 'START_SCREEN_RECORDING') {
     startScreenCapture().then(function () { sendResponse({ ok: true }); });
     return true;
@@ -106,6 +150,11 @@ async function handleCommand(cmd) {
 // ── Handlers ──
 
 async function handleStart(cmd) {
+  // Require login
+  if (!(await isAuthenticated())) {
+    return { success: false, error: 'signin_required' };
+  }
+
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   const tab = tabs[0];
   if (!tab || !tab.id) return { success: false, error: 'No active tab' };
@@ -187,9 +236,14 @@ async function handleRecordingData(rawEvents, rawSteps) {
   const frontendUrl = DEFAULT_FRONTEND_URL;
 
   try {
+    // Include API token if user has logged in on the web app
+    var token = await getToken();
+    var headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
     var createResp = await fetch(backendUrl + '/api/demos', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: headers,
       body: JSON.stringify({ title: 'Demo ' + new Date().toLocaleString(), steps: steps, language: s.language, demoType: s.demoType }),
     });
     var createData = await createResp.json();
@@ -298,19 +352,21 @@ async function handleDelete() {
 
 async function handleStatus() {
   const s = await getSession();
+  const user = await getUserInfo();
   if (!s) {
-    updatePopup({ type: 'STATUS_UPDATE', state: 'idle' });
-    return { state: 'idle' };
+    updatePopup({ type: 'STATUS_UPDATE', state: 'idle', user: user });
+    return { state: 'idle', user: user };
   }
   updatePopup({
     type: 'STATUS_UPDATE',
     state: s.state,
     recordingDuration: s.state === 'recording' ? getRecordingDuration() : undefined,
+    user: user,
   });
   if (s.steps && s.steps.length > 0) {
     updatePopup({ type: 'STEPS_READY', steps: s.steps });
   }
-  return { state: s.state };
+  return { state: s.state, user: user };
 }
 
 async function handleClear() {
@@ -324,11 +380,31 @@ async function handleClear() {
 // ── Extension icon clicked → toggle panel ──
 
 chrome.action.onClicked.addListener(async function (tab) {
-  if (!tab.id) return;
   try {
+    const authed = await isAuthenticated();
+    console.log('[HackDemo] Icon clicked, authenticated:', authed);
+
+    if (!authed) {
+      const loginUrl = DEFAULT_FRONTEND_URL + '/login';
+      console.log('[HackDemo] Opening login page:', loginUrl);
+      const newTab = await chrome.tabs.create({ url: loginUrl });
+      console.log('[HackDemo] Login tab created:', newTab.id);
+      return;
+    }
+
+    if (!tab.id) return;
     await chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_PANEL' });
-  } catch (_) {
-    console.warn('[HackDemo] Cannot toggle panel on this page');
+  } catch (err) {
+    console.error('[HackDemo] onClick error:', err.message);
+  }
+});
+
+// ── Install onboarding ──
+
+chrome.runtime.onInstalled.addListener(function (details) {
+  if (details.reason === 'install') {
+    console.log('[HackDemo] First install — opening login page');
+    chrome.tabs.create({ url: DEFAULT_FRONTEND_URL + '/login' });
   }
 });
 

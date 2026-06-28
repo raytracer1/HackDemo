@@ -72,9 +72,12 @@ export default function HomePage() {
                   Create a Demo
                 </Link>
               ) : (
-                <span className="rounded-xl border border-gray-700 bg-gray-900 px-8 py-3.5 text-base font-semibold text-gray-400">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2 rounded-xl bg-hack-primary px-8 py-3.5 text-base font-semibold text-white no-underline shadow-lg shadow-hack-primary/25 transition-all hover:bg-indigo-500 active:scale-95"
+                >
                   Sign in to create a demo
-                </span>
+                </Link>
               )}
               <a
                 href="#features"
