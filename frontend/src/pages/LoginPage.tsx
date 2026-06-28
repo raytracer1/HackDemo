@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || '';
 
@@ -12,6 +13,7 @@ const features = [
 
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
+  const [searchParams] = useSearchParams();
   const [clicked, setClicked] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -52,20 +54,25 @@ export default function LoginPage() {
         return;
       }
 
-      // Sign in with credentials via Auth.js
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = `${API_BASE}/api/auth/callback/credentials`;
-      const csrfInput = document.createElement('input'); csrfInput.type = 'hidden'; csrfInput.name = 'csrfToken'; csrfInput.value = 'dummy';
-      form.appendChild(csrfInput);
-      const emailInput = document.createElement('input'); emailInput.type = 'hidden'; emailInput.name = 'email'; emailInput.value = email;
-      form.appendChild(emailInput);
-      const passInput = document.createElement('input'); passInput.type = 'hidden'; passInput.name = 'password'; passInput.value = password;
-      form.appendChild(passInput);
-      const cbInput = document.createElement('input'); cbInput.type = 'hidden'; cbInput.name = 'callbackUrl'; cbInput.value = window.location.origin + '/';
-      form.appendChild(cbInput);
-      document.body.appendChild(form);
-      form.submit();
+      // Sign in with credentials via fetch
+      const callbackUrl = window.location.origin + '/';
+      await fetch(`${API_BASE}/api/auth/callback/credentials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ email, password, callbackUrl, csrfToken: 'dummy' }).toString(),
+        credentials: 'include',
+      });
+
+      // Check if sign-in succeeded (session cookie should be set)
+      const sessionRes = await fetch(`${API_BASE}/api/auth/session`, { credentials: 'include' });
+      if (sessionRes.ok) {
+        const session = await sessionRes.json();
+        if (session?.user) {
+          window.location.href = callbackUrl;
+          return;
+        }
+      }
+      throw new Error('Sign in failed. Check your credentials or verify your email.');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -106,6 +113,13 @@ export default function LoginPage() {
               {mode === 'register' ? 'Sign in' : 'Sign up'}
             </button>
           </p>
+
+          {searchParams.get('verified') === '1' && (
+            <div className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">Email verified! You can now sign in.</div>
+          )}
+          {searchParams.get('error') === 'CredentialsSignin' && mode === 'login' && (
+            <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">Sign in failed. Check your email and password, or verify your email if you just registered.</div>
+          )}
 
           {/* Email form */}
           <form onSubmit={handleEmailSubmit} className="mt-6 space-y-4">

@@ -61,15 +61,15 @@ export const callbacks: AuthConfig['callbacks'] = {
    * By default, Auth.js only allows same-origin redirects.
    */
   redirect({ url, baseUrl }) {
-    // Relative paths stay within the backend
-    if (url.startsWith('/')) return `${baseUrl}${url}`;
-    // Same origin is always allowed
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // Relative paths: redirect to frontend domain
+    if (url.startsWith('/')) return `${frontendUrl}${url}`;
+    // Same origin (backend): allowed
     if (new URL(url).origin === baseUrl) return url;
-    // Allow redirects to the frontend domain
-    const frontendUrl = process.env.FRONTEND_URL;
-    if (frontendUrl && new URL(url).origin === new URL(frontendUrl).origin) return url;
+    // Frontend domain: allowed
+    if (new URL(url).origin === new URL(frontendUrl).origin) return url;
     // Fallback
-    return baseUrl;
+    return frontendUrl;
   },
 
   /**

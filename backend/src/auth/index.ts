@@ -40,8 +40,7 @@ export const authConfig: AuthConfig = {
         if (!row || !row.password_hash) return null;
 
         if (!verifyPassword(password, row.password_hash)) return null;
-
-        if (!row.email_verified) throw new Error('Please verify your email before signing in. Check your inbox.');
+        if (!row.email_verified) return null;
 
         return { id: row.id, email: row.email, name: row.name, image: row.image };
       },
@@ -51,13 +50,10 @@ export const authConfig: AuthConfig = {
   trustHost: true,
   basePath: '/api/auth',
   pages: {
-    // Redirect all built-in Auth.js pages to the frontend.
-    // No HTML pages should be served from the backend domain — avoids
-    // Google Safe Browsing false-positives on the API subdomain.
-    signIn: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
-    signOut: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/`,
-    error: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
-    verifyRequest: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
+    signIn: '/login',
+    signOut: '/',
+    error: '/login',
+    verifyRequest: '/login',
   },
   // SPA with cross-origin POST to /signin: CSRF cookie isn't available
   // because the browser hasn't visited the backend before login.
