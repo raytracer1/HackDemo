@@ -244,7 +244,7 @@ async function handleRecordingData(rawEvents, rawSteps) {
     var createResp = await fetch(backendUrl + '/api/demos', {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify({ title: 'Demo ' + new Date().toLocaleString(), steps: steps, language: s.language, demoType: s.demoType }),
+      body: JSON.stringify({ title: s.demoType || 'Product Demo', steps: steps, language: s.language, demoType: s.demoType }),
     });
     var createData = await createResp.json();
     var demoId = createData.id;

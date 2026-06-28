@@ -140,9 +140,6 @@ export default function DemoPage() {
       {/* Header */}
       <header className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 rounded bg-hack-primary flex items-center justify-center text-xs font-bold">
-            H
-          </div>
           <h1 className="text-2xl font-bold">{demo.title || 'HackDemo'}</h1>
         </div>
         {isProcessing && (
