@@ -93,6 +93,24 @@ export async function getClient(): Promise<pg.Client> {
   try { await client.query(`ALTER TABLE demos ADD COLUMN language TEXT DEFAULT 'English'`); } catch (_) {}
   try { await client.query(`ALTER TABLE demos ADD COLUMN demo_type TEXT DEFAULT 'product-demo'`); } catch (_) {}
 
+  // Users table (for Google OAuth sign-in)
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      name TEXT,
+      image TEXT,
+      credits DECIMAL(20,8) DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+
+  // Migrate credits column precision if table was created with DECIMAL(10,2)
+  try {
+    await client.query(`ALTER TABLE users ALTER COLUMN credits TYPE DECIMAL(20,8)`);
+  } catch (_) {}
+
   return client;
 }
 

@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
 import demoRoutes from './routes/demo.js';
+import authRoutes from './auth/routes.js';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
@@ -12,9 +13,14 @@ async function main() {
     bodyLimit: 100 * 1024 * 1024, // 100MB for screenshot uploads
   });
 
-  // Plugins
+  // CORS: in production, only allow the configured frontend origin.
+  // In dev, origin:true reflects whatever origin the browser sends.
+  const frontendUrl = process.env.FRONTEND_URL;
   await fastify.register(cors, {
-    origin: true, // Allow extension + frontend
+    origin: frontendUrl
+      ? [frontendUrl, 'chrome-extension://*', 'moz-extension://*']
+      : true,
+    credentials: true,
   });
   await fastify.register(multipart, {
     limits: {
@@ -24,6 +30,7 @@ async function main() {
   });
 
   // Routes
+  await fastify.register(authRoutes);
   await fastify.register(demoRoutes);
 
   // Health check
