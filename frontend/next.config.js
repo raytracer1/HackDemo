@@ -37,6 +37,8 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               // Images from any HTTPS source (Google profile pics, R2 storage, etc.)
               "img-src 'self' https: data:",
+              // Video/audio from R2 storage (Cloudflare) + Google TTS
+              "media-src 'self' https:",
               // Backend API + Google OAuth redirect endpoint
               "connect-src 'self' https://api.hackdemo.win https://accounts.google.com https://www.paypal.com",
               // PayPal renders its buttons in an iframe
