@@ -36,11 +36,11 @@ const nextConfig = {
               // Tailwind generates inline styles
               "style-src 'self' 'unsafe-inline'",
               // Images from any HTTPS source (Google profile pics, R2 storage, etc.)
-              "img-src 'self' https: data:",
+              "img-src 'self' https: data: blob:",
               // Video/audio from R2 storage (Cloudflare) + Google TTS
               "media-src 'self' https:",
-              // Backend API + Google OAuth redirect endpoint
-              "connect-src 'self' https://api.hackdemo.win https://accounts.google.com https://www.paypal.com",
+              // Backend API + Google OAuth + FFmpeg WASM (uses data: URIs internally)
+              "connect-src 'self' https://api.hackdemo.win https://accounts.google.com https://www.paypal.com data: blob:",
               // PayPal renders its buttons in an iframe
               "frame-src https://www.paypal.com",
               // System fonts
