@@ -15,12 +15,12 @@ export function useDemoData(demoId: string): UseDemoDataResult {
   useEffect(() => {
     if (!demoId || demoId === 'loading') { setLoading(false); return; }
 
-    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
     let stopped = false;
 
     async function poll() {
       try {
-        const resp = await fetch(`${BACKEND_URL}/api/demos/${demoId}`);
+        const resp = await fetch(`${API_BASE}/api/demos/${demoId}`);
         const data = await resp.json();
         if (!stopped) setDemo(data);
         if (data.status === 'completed' || data.status === 'failed') {
