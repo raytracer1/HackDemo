@@ -93,196 +93,6 @@ async function generateNarration(steps: any[], language?: string, demoType?: str
   return { narrations: narrations.slice(0, steps.length), totalTokens };
 }
 
-// ── MP3 duration ──
-
-function getMp3Duration(buf: Buffer): number {
-  if (buf.length < 4) return 0;
-
-  let offset = 0;
-
-  // Skip ID3v2 tag
-  if (
-    buf.length >= 10 &&
-    buf.toString("ascii", 0, 3) === "ID3"
-  ) {
-    const size =
-      ((buf[6] & 0x7f) << 21) |
-      ((buf[7] & 0x7f) << 14) |
-      ((buf[8] & 0x7f) << 7) |
-      (buf[9] & 0x7f);
-
-    offset = 10 + size;
-  }
-
-  const bitrateTableV1L3 = [
-    0, 32, 40, 48, 56, 64, 80, 96,
-    112, 128, 160, 192, 224, 256, 320, 0,
-  ];
-
-  const bitrateTableV2L3 = [
-    0, 8, 16, 24, 32, 40, 48, 56,
-    64, 80, 96, 112, 128, 144, 160, 0,
-  ];
-
-  const sampleRateTable: Record<number, number[]> = {
-    3: [44100, 48000, 32000], // MPEG1
-    2: [22050, 24000, 16000], // MPEG2
-    0: [11025, 12000, 8000],  // MPEG2.5
-  };
-
-  let totalSamples = 0;
-  let sampleRate = 0;
-
-  while (offset + 4 <= buf.length) {
-    // Sync word
-    if (
-      buf[offset] !== 0xff ||
-      (buf[offset + 1] & 0xe0) !== 0xe0
-    ) {
-      offset++;
-      continue;
-    }
-
-    const b1 = buf[offset + 1];
-    const b2 = buf[offset + 2];
-
-    const version = (b1 >> 3) & 0x03;
-    const layer = (b1 >> 1) & 0x03;
-
-    // Reserved MPEG version
-    if (version === 1) {
-      offset++;
-      continue;
-    }
-
-    // Layer III only
-    if (layer !== 1) {
-      offset++;
-      continue;
-    }
-
-    const bitrateIndex = (b2 >> 4) & 0x0f;
-    const sampleRateIndex = (b2 >> 2) & 0x03;
-    const padding = (b2 >> 1) & 0x01;
-
-    if (
-      bitrateIndex === 0 ||
-      bitrateIndex === 15 ||
-      sampleRateIndex === 3
-    ) {
-      offset++;
-      continue;
-    }
-
-    const currentSampleRate =
-      sampleRateTable[version]?.[sampleRateIndex];
-
-    if (!currentSampleRate) {
-      offset++;
-      continue;
-    }
-
-    if (sampleRate === 0) {
-      sampleRate = currentSampleRate;
-    }
-
-    const isMpeg1 = version === 3;
-
-    const bitrate = isMpeg1
-      ? bitrateTableV1L3[bitrateIndex]
-      : bitrateTableV2L3[bitrateIndex];
-
-    const samplesPerFrame = isMpeg1 ? 1152 : 576;
-
-    const frameLength = isMpeg1
-      ? Math.floor((144000 * bitrate) / currentSampleRate) + padding
-      : Math.floor((72000 * bitrate) / currentSampleRate) + padding;
-
-    if (
-      frameLength <= 0 ||
-      offset + frameLength > buf.length
-    ) {
-      break;
-    }
-
-    totalSamples += samplesPerFrame;
-    offset += frameLength;
-  }
-
-  if (sampleRate === 0 || totalSamples === 0) {
-    return 0;
-  }
-
-  return Math.round((totalSamples * 1000) / sampleRate);
-}
-
-// ── Google TTS (free, no API key, reliable) ──
-var LANG_MAP: Record<string, string> = {
-  'English (US)': 'en', 'English (UK)': 'en',
-  'Chinese (Mandarin)': 'zh-CN', 'Chinese (Cantonese)': 'zh-CN',
-  'Japanese': 'ja', 'Korean': 'ko',
-  'Spanish': 'es', 'French': 'fr', 'German': 'de',
-  'Portuguese': 'pt', 'Italian': 'it', 'Russian': 'ru',
-  'Arabic': 'ar', 'Hindi': 'hi', 'Dutch': 'nl',
-  'Polish': 'pl', 'Turkish': 'tr', 'Swedish': 'sv',
-  'Thai': 'th', 'Vietnamese': 'vi', 'Indonesian': 'id',
-};
-
-function getLang(language?: string): string { return LANG_MAP[language || 'English (US)'] || 'en'; }
-
-async function generateAudioWithRetry(narration: string, language?: string, retries = 3): Promise<{ buffer: Buffer; durationMs: number }> {
-  for (var attempt = 1; attempt <= retries; attempt++) {
-    try {
-      return await generateAudio(narration, language);
-    } catch (err: any) {
-      console.warn(`[Worker] TTS attempt ${attempt}/${retries} failed:`, err.message);
-      if (attempt === retries) throw err;
-      await new Promise(r => setTimeout(r, 1000 * attempt));
-    }
-  }
-  throw new Error('TTS failed after retries');
-}
-
-async function generateAudio(narration: string, language?: string): Promise<{ buffer: Buffer; durationMs: number }> {
-  var tl = getLang(language);
-  var chunks = splitText(narration, 180);
-  var buffers: Buffer[] = [];
-  for (var ci = 0; ci < chunks.length; ci++) {
-    var url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunks[ci])}&tl=${tl}&client=tw-ob`;
-    var resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    if (!resp.ok) throw new Error(`Google TTS ${resp.status}`);
-    var buf = Buffer.from(await resp.arrayBuffer());
-    buffers.push(buf);
-  }
-  var full = Buffer.concat(buffers);
-  var ms = getMp3Duration(full);
-  return { buffer: full, durationMs: ms };
-}
-
-function splitText(text: string, maxLen: number): string[] {
-  var sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-  var result: string[] = [];
-  var cur = '';
-  for (var si = 0; si < sentences.length; si++) {
-    if (cur.length + sentences[si].length > maxLen && cur.length > 0) { result.push(cur.trim()); cur = ''; }
-    cur += sentences[si];
-  }
-  if (cur.trim()) result.push(cur.trim());
-  return result.length > 0 ? result : [text];
-}
-
-// ── Upload audio via backend ──
-async function uploadAudio(demoId: string, index: number, buffer: Buffer, durationMs: number): Promise<string> {
-  const resp = await fetch(`${BACKEND}/api/demos/${demoId}/audio`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify({ index, audio: buffer.toString('base64'), duration_ms: durationMs }),
-  });
-  if (!resp.ok) throw new Error(`Audio upload failed: ${resp.status}`);
-  const data = await resp.json() as any;
-  return data.key;
-}
-
 // ── Processing ──
 async function processDemo(demoId: string): Promise<void> {
   console.log(`[Worker] Processing ${demoId}`);
@@ -310,25 +120,25 @@ async function processDemo(demoId: string): Promise<void> {
     await updateDemoWithTokens(demoId, 'narration_done', steps, totalTokens);
     console.log(`[Worker] Narration done (${totalTokens} tokens)`);
 
-    // Step 2: Voiceover
-    console.log(`[Worker] Voiceover...`);
+    // Step 2: Voiceover → delegate to backend (parallel TTS with max 5 concurrent)
+    console.log(`[Worker] Voiceover (delegating to backend)...`);
     await updateDemo(demoId, 'processing_audio');
-    var ttsTasks = steps.filter((s: any) => s.narration).map(async (s: any, idx: number) => {
-      try {
-        const audio = await generateAudioWithRetry(s.narration, language);
-        const key = await uploadAudio(demoId, s.index, audio.buffer, audio.durationMs);
-        return { index: s.index, key, durationMs: audio.durationMs };
-      } catch (err: any) {
-        console.warn(`[Worker] TTS failed for step ${s.index}:`, err.message);
-        return null;
-      }
+    const ttsResp = await fetch(`${BACKEND}/api/demos/${demoId}/tts`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: '{}',
     });
-    var results = await Promise.all(ttsTasks);
-    for (const r of results) {
-      if (r) { steps[r.index].audio_key = r.key; steps[r.index].duration_ms = r.durationMs; }
+    if (!ttsResp.ok) {
+      const errText = await ttsResp.text().catch(() => '');
+      throw new Error(`Backend TTS failed ${ttsResp.status}: ${errText.slice(0, 200)}`);
+    }
+    const ttsData = await ttsResp.json() as any;
+    for (const audio of (ttsData.audios || [])) {
+      steps[audio.index].audio_key = audio.key;
+      steps[audio.index].duration_ms = audio.durationMs;
     }
     await updateDemo(demoId, 'completed', steps);
-    console.log(`[Worker] Complete`);
+    console.log(`[Worker] Complete (${ttsData.audios?.length || 0} steps)`);
   } catch (err: any) {
     console.error(`[Worker] Failed:`, err.message);
     await updateDemoWithTokens(demoId, 'failed', null, 0, 'ai_processing_error');

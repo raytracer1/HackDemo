@@ -306,4 +306,124 @@ export default async function demoRoutes(fastify: FastifyInstance) {
 
     return reply.send(response);
   });
+
+  /**
+   * POST /api/demos/:id/tts — process TTS for all steps with narration but no audio.
+   * Called by worker after DeepSeek narration is complete.
+   * Internally parallelises Google TTS calls (max 5 concurrent).
+   */
+  fastify.post('/api/demos/:id/tts', async (request, reply) => {
+    const auth = await authenticate(request.headers.authorization);
+    if (!auth) return reply.status(401).send({ error: 'Authentication required.' });
+
+    const { id } = request.params as { id: string };
+
+    // ── Load demo ──
+    const result = await query(`SELECT * FROM demos WHERE id = $1`, [id]);
+    if (!result.rows?.length) return reply.status(404).send({ error: 'Demo not found' });
+
+    const demo = result.rows[0];
+    const steps: StepItem[] = demo.steps || [];
+    const language = demo.language || 'English (US)';
+
+    // Language map (same as worker)
+    const LANG_MAP: Record<string, string> = {
+      'English (US)': 'en', 'English (UK)': 'en',
+      'Chinese (Mandarin)': 'zh-CN', 'Chinese (Cantonese)': 'zh-CN',
+      'Japanese': 'ja', 'Korean': 'ko',
+      'Spanish': 'es', 'French': 'fr', 'German': 'de',
+      'Portuguese': 'pt', 'Italian': 'it', 'Russian': 'ru',
+      'Arabic': 'ar', 'Hindi': 'hi', 'Dutch': 'nl',
+      'Polish': 'pl', 'Turkish': 'tr', 'Swedish': 'sv',
+      'Thai': 'th', 'Vietnamese': 'vi', 'Indonesian': 'id',
+    };
+    const tl = LANG_MAP[language] || 'en';
+
+    function splitText(text: string, maxLen = 180): string[] {
+      const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+      const result: string[] = [];
+      let cur = '';
+      for (const s of sentences) {
+        if (cur.length + s.length > maxLen && cur.length > 0) { result.push(cur.trim()); cur = ''; }
+        cur += s;
+      }
+      if (cur.trim()) result.push(cur.trim());
+      return result.length > 0 ? result : [text];
+    }
+
+    // ── Concurrency-limited parallel execution ──
+    async function limitedParallel<T, R>(
+      items: T[],
+      fn: (item: T, i: number) => Promise<R>,
+      limit = 5,
+    ): Promise<R[]> {
+      const results: R[] = new Array(items.length);
+      let cursor = 0;
+
+      async function worker() {
+        while (cursor < items.length) {
+          const i = cursor++;
+          results[i] = await fn(items[i], i);
+        }
+      }
+
+      await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
+      return results;
+    }
+
+    // ── Build TTS tasks — one per chunk ──
+    interface TtsTask { stepIndex: number; chunk: string; }
+    const tasks: TtsTask[] = [];
+    for (const step of steps) {
+      if (!step.narration || step.audio_key) continue;
+      const chunks = splitText(step.narration);
+      for (const chunk of chunks) {
+        tasks.push({ stepIndex: step.index, chunk });
+      }
+    }
+
+    if (tasks.length === 0) {
+      return reply.send({ id, status: demo.status, audios: [] });
+    }
+
+    console.log(`[TTS] Demo ${id}: ${tasks.length} chunks across ${steps.filter(s => s.narration && !s.audio_key).length} steps`);
+
+    // ── Parallel TTS (max 5 concurrent) ──
+    const ttsResults = await limitedParallel(tasks, async (task) => {
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(task.chunk)}&tl=${tl}&client=tw-ob`;
+      const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+      if (!resp.ok) throw new Error(`Google TTS ${resp.status}`);
+      const arr = await resp.arrayBuffer();
+      return { stepIndex: task.stepIndex, buffer: Buffer.from(arr) };
+    });
+
+    // ── Merge chunks per step, upload to R2, and update DB ──
+    const audioResults: { index: number; key: string; durationMs: number }[] = [];
+
+    // Group buffers by stepIndex
+    const grouped = new Map<number, Buffer[]>();
+    for (const r of ttsResults) {
+      if (!grouped.has(r.stepIndex)) grouped.set(r.stepIndex, []);
+      grouped.get(r.stepIndex)!.push(r.buffer);
+    }
+
+    for (const [stepIndex, buffers] of grouped) {
+      const full = Buffer.concat(buffers);
+      // Estimate duration from MP3 file size (~128kbps)
+      const durationMs = Math.round((full.length * 8) / 128000 * 1000);
+      const key = await uploadAudio(id, stepIndex, full);
+      steps[stepIndex].audio_key = key;
+      steps[stepIndex].duration_ms = durationMs;
+      audioResults.push({ index: stepIndex, key, durationMs });
+    }
+
+    // Write updated steps back to DB
+    await query(
+      `UPDATE demos SET steps = $1, updated_at = now() WHERE id = $2`,
+      [JSON.stringify(steps), id],
+    );
+
+    console.log(`[TTS] Demo ${id}: done — ${audioResults.length} steps`);
+    return reply.send({ id, status: demo.status, audios: audioResults });
+  });
 }
