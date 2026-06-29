@@ -56,7 +56,6 @@ export default function HistoryPage() {
     }
   }, [isAuthenticated, isLoading]);
 
-  useEffect(() => { document.title = 'History — HackDemo'; }, []);
   useEffect(() => {
     fetchPage(page);
   }, [page, fetchPage]);

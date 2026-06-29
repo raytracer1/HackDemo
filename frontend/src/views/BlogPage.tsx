@@ -1,5 +1,4 @@
 'use client';
-import { useEffect } from 'react';
 import Link from "next/link";
 
 const posts = [
@@ -13,8 +12,6 @@ const posts = [
 ];
 
 export default function BlogPage() {
-  useEffect(() => { document.title = 'Blog — HackDemo'; }, []);
-
   return (
     <div className="px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-2xl">

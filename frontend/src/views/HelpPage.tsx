@@ -1,5 +1,4 @@
 'use client';
-import { useEffect } from 'react';
 import Link from "next/link";
 
 const steps = [
@@ -46,7 +45,6 @@ const faqs = [
 ];
 
 export default function HelpPage() {
-  useEffect(() => { document.title = 'Help — HackDemo'; }, []);
   return (
     <div className="px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl">

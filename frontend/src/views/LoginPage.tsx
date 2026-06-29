@@ -23,7 +23,6 @@ export default function LoginPage() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  useEffect(() => { document.title = 'Sign In — HackDemo'; }, []);
   const [submitting, setSubmitting] = useState(false);
 
   const handleGoogleSignIn = () => { setClicked(true); login(); };

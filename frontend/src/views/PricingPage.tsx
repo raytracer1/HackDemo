@@ -20,7 +20,6 @@ async function fetchApiToken(): Promise<string | null> {
 
 export default function PricingPage() {
   const { isAuthenticated, refresh } = useAuth();
-  useEffect(() => { document.title = 'Pricing — HackDemo'; }, []);
   const [purchased, setPurchased] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
