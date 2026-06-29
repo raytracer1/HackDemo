@@ -32,7 +32,7 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               // Next.js inline scripts + PayPal SDK + FFmpeg WASM
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://www.paypalobjects.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://www.paypalobjects.com https://www.googletagmanager.com",
               // Tailwind generates inline styles
               "style-src 'self' 'unsafe-inline'",
               // Images from any HTTPS source (Google profile pics, R2 storage, etc.)
@@ -40,7 +40,7 @@ const nextConfig = {
               // Video/audio from R2 storage (Cloudflare) + Google TTS
               "media-src 'self' https: blob:",
               // Backend API + Google OAuth + FFmpeg WASM (uses data: URIs internally)
-              "connect-src 'self' https://api.hackdemo.win https://accounts.google.com https://www.paypal.com https://*.r2.cloudflarestorage.com data: blob:",
+              "connect-src 'self' https://api.hackdemo.win https://accounts.google.com https://www.paypal.com https://*.r2.cloudflarestorage.com https://*.google-analytics.com data: blob:",
               // PayPal renders its buttons in an iframe
               "frame-src https://www.paypal.com",
               // System fonts
