@@ -145,6 +145,33 @@ async function processDemo(demoId: string): Promise<void> {
   }
 }
 
+// ── Concurrency limiter ──
+const MAX_CONCURRENT = 3;
+let running = 0;
+const queue: (() => void)[] = [];
+
+function enqueue(fn: () => Promise<void>) {
+  if (running < MAX_CONCURRENT) {
+    running++;
+    fn().finally(() => {
+      running--;
+      // Dequeue next
+      const next = queue.shift();
+      if (next) next();
+    });
+  } else {
+    // Wrap in a thunk that calls fn when dequeued
+    queue.push(() => {
+      running++;
+      fn().finally(() => {
+        running--;
+        const next = queue.shift();
+        if (next) next();
+      });
+    });
+  }
+}
+
 // ── Ably + Adaptive Polling ──
 const MIN_POLL = 30000;   // 30s
 const MAX_POLL = 1200000; // 1200s (20 min)
@@ -165,8 +192,8 @@ async function pollPending() {
     const demos = await resp.json() as any[];
     for (const demo of demos) {
       if (demo.status === 'processing' || demo.status === 'narration_done') {
-        console.log(`[Worker] Poll found: ${demo.id}`);
-        await processDemo(demo.id);
+        console.log(`[Worker] Poll found: ${demo.id} (queue: ${queue.length} waiting, ${running} active)`);
+        enqueue(() => processDemo(demo.id));
         return true;
       }
     }
@@ -186,7 +213,7 @@ async function main() {
 
   await channel.subscribe('new-demo', async (msg: any) => {
     console.log(`[Worker] Ably job: ${msg.data.demoId}`);
-    await processDemo(msg.data.demoId);
+    enqueue(() => processDemo(msg.data.demoId));
   });
 
   schedulePoll();
