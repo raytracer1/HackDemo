@@ -6,6 +6,7 @@ import demoRoutes from './routes/demo.js';
 import authRoutes from './auth/routes.js';
 import paypalRoutes from './routes/paypal.js';
 import registerRoutes from './auth/register.js';
+import adminRoutes from './routes/admin.js';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
@@ -42,6 +43,7 @@ async function main() {
   await fastify.register(authRoutes);
   await fastify.register(paypalRoutes);
   await fastify.register(demoRoutes);
+  await fastify.register(adminRoutes);
 
   // Health check
   fastify.get('/health', async () => ({ status: 'ok' }));
