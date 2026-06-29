@@ -38,7 +38,7 @@ const nextConfig = {
               // Images from any HTTPS source (Google profile pics, R2 storage, etc.)
               "img-src 'self' https: data: blob:",
               // Video/audio from R2 storage (Cloudflare) + Google TTS
-              "media-src 'self' https:",
+              "media-src 'self' https: blob:",
               // Backend API + Google OAuth + FFmpeg WASM (uses data: URIs internally)
               "connect-src 'self' https://api.hackdemo.win https://accounts.google.com https://www.paypal.com https://*.r2.cloudflarestorage.com data: blob:",
               // PayPal renders its buttons in an iframe
