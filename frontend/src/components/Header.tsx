@@ -33,6 +33,7 @@ export default function Header() {
         <nav className="hidden sm:flex items-center gap-1">
           <Link to="/" className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900">Home</Link>
           <Link to="/pricing" className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900">Pricing</Link>
+          <Link to="/blog" className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900">Blog</Link>
         </nav>
 
         <div className="flex items-center gap-3">

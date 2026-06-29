@@ -7,6 +7,8 @@ import HistoryPage from './pages/HistoryPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import HelpPage from './pages/HelpPage';
+import BlogPage from './pages/BlogPage';
+import BlogPostPage from './pages/BlogPostPage';
 import VerifyPage from './pages/VerifyPage';
 import DemoPage from './components/DemoPage';
 
@@ -19,6 +21,8 @@ export default function App() {
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/help" element={<HelpPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/demo/:demoId" element={<DemoPage />} />
