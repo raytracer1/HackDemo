@@ -89,18 +89,6 @@ export default function BlogPostPage() {
   const slug = (useParams() as any)?.slug as string | undefined;
   const post = slug ? posts[slug] : null;
 
-  useEffect(() => {
-    if (!post) return;
-    document.title = `${post.title} — HackDemo Blog`;
-    // Update meta tags for crawlers that execute JS
-    const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute('content', 'HackDemo vs Guidde — a head-to-head comparison of features, pricing, and developer experience for browser demo recording tools.');
-    const ogTitle = document.querySelector('meta[property="og:title"]');
-    if (ogTitle) ogTitle.setAttribute('content', post.title);
-    const ogDesc = document.querySelector('meta[property="og:description"]');
-    if (ogDesc) ogDesc.setAttribute('content', 'HackDemo vs Guidde — a head-to-head comparison of features, pricing, and developer experience.');
-  }, [post]);
-
   if (!post) {
     return (
       <div className="px-4 py-24 text-center">
