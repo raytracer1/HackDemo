@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { blogPosts } from '@/data/blog-posts';
+import { blogPosts } from '@/views/blog-posts/data';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://hackdemo.win';

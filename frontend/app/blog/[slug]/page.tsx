@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import PageLayout from '@/components/PageLayout';
 import BlogPostPage from '@/views/BlogPostPage';
 import JsonLd from '@/components/JsonLd';
-import { blogPosts } from '@/data/blog-posts';
+import { blogPosts } from '@/views/blog-posts/data';
 
 // ISR — blog content changes only on deployment; pre-render known posts at build time
 export const revalidate = 3600;
