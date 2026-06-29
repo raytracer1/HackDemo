@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+'use client';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 import { useState, useRef, useEffect } from 'react';
 
 export default function Header() {
@@ -25,15 +26,15 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2.5 no-underline">
+        <Link href="/" className="flex items-center gap-2.5 no-underline">
           <img src="/img/normal.png" alt="HackDemo" className="h-9 w-9 rounded-lg" />
           <span className="text-lg font-semibold tracking-tight text-gray-900">HackDemo</span>
         </Link>
 
         <nav className="hidden sm:flex items-center gap-1">
-          <Link to="/" className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900">Home</Link>
-          <Link to="/pricing" className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900">Pricing</Link>
-          <Link to="/blog" className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900">Blog</Link>
+          <Link href="/" className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900">Home</Link>
+          <Link href="/pricing" className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900">Pricing</Link>
+          <Link href="/blog" className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 no-underline transition-colors hover:bg-gray-100 hover:text-gray-900">Blog</Link>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -56,7 +57,7 @@ export default function Header() {
                       <span className="font-medium text-hack-success">${user.credits.toFixed(4)}</span>
                     </p>
                   </div>
-                  <Link to="/history" onClick={() => setDropdownOpen(false)} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 no-underline transition-colors hover:bg-gray-50">
+                  <Link href="/history" onClick={() => setDropdownOpen(false)} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 no-underline transition-colors hover:bg-gray-50">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     History
                   </Link>
@@ -68,7 +69,7 @@ export default function Header() {
               )}
             </div>
           ) : (
-            <Link to="/login" className="inline-flex items-center gap-2 rounded-lg bg-hack-primary px-4 py-2 text-sm font-medium text-white no-underline transition-all hover:bg-indigo-600 active:scale-95">Sign in</Link>
+            <Link href="/login" className="inline-flex items-center gap-2 rounded-lg bg-hack-primary px-4 py-2 text-sm font-medium text-white no-underline transition-all hover:bg-indigo-600 active:scale-95">Sign in</Link>
           )}
         </div>
       </div>

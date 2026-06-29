@@ -1,8 +1,9 @@
+'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import Link from "next/link";
 import { useAuth } from '../contexts/AuthContext';
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || '';
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 const PAGE_SIZE = 10;
 
 interface DemoItem {
@@ -80,7 +81,7 @@ export default function HistoryPage() {
               {demos.map(demo => {
                 const badge = statusBadge(demo.status);
                 return (
-                  <Link key={demo.id} to={`/demo/${demo.id}`} className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-5 py-4 no-underline shadow-sm transition-colors hover:border-gray-300 hover:shadow-md">
+                  <Link key={demo.id} href={`/demo/${demo.id}`} className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-5 py-4 no-underline shadow-sm transition-colors hover:border-gray-300 hover:shadow-md">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-gray-900">{demo.title}</p>
                       <p className="mt-0.5 text-xs text-gray-400">{demo.language} &middot; {new Date(demo.created_at).toLocaleDateString()}</p>

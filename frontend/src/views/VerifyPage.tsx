@@ -1,11 +1,12 @@
+'use client';
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import Link from "next/link"; import { useSearchParams,  } from "next/navigation";
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || '';
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 export default function VerifyPage() {
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+  const searchParams = useSearchParams();
+  const token = searchParams?.get('token');
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export default function VerifyPage() {
               <svg className="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
             </div>
             <h1 className="text-xl font-bold text-gray-900">Email verified!</h1>
-            <Link to="/login" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-hack-primary px-6 py-3 text-sm font-semibold text-white no-underline hover:bg-indigo-600">Sign in</Link>
+            <Link href="/login" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-hack-primary px-6 py-3 text-sm font-semibold text-white no-underline hover:bg-indigo-600">Sign in</Link>
           </>
         ) : (
           <>
@@ -39,7 +40,7 @@ export default function VerifyPage() {
             </div>
             <h1 className="text-xl font-bold text-gray-900">Verification failed</h1>
             <p className="mt-2 text-sm text-gray-500">Invalid or expired verification link.</p>
-            <Link to="/login" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-hack-primary px-6 py-3 text-sm font-semibold text-white no-underline hover:bg-indigo-600">Back to sign in</Link>
+            <Link href="/login" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-hack-primary px-6 py-3 text-sm font-semibold text-white no-underline hover:bg-indigo-600">Back to sign in</Link>
           </>
         )}
       </div>

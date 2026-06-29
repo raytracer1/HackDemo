@@ -1,3 +1,4 @@
+'use client';
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 
 // ── Types ──
@@ -38,7 +39,7 @@ interface SessionResponse {
 
 // In dev, VITE_BACKEND_URL is empty → relative paths work via Vite proxy.
 // In production, it's the backend domain (e.g. https://hack-demo-du4z.vercel.app).
-const API_BASE = import.meta.env.VITE_BACKEND_URL || '';
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 function api(path: string): string {
   return `${API_BASE}${path}`;
@@ -79,22 +80,25 @@ function deliverAuth() {
   if (!pendingAuthPayload) return;
 
   // 1. DOM data attribute (shared world, survives race conditions)
-  document.documentElement.setAttribute(
+  typeof document !== "undefined" && document.documentElement.setAttribute(
     'data-hackdemo-auth',
     JSON.stringify(pendingAuthPayload),
   );
 
   // 2. postMessage (immediate delivery when CS is already listening)
-  window.postMessage(pendingAuthPayload, window.location.origin);
+  if (typeof window !== 'undefined') {
+    window.postMessage(pendingAuthPayload, window.location.origin);
+  }
 }
 
 /** Clear auth data from the extension. */
 function clearExtensionAuth() {
-  document.documentElement.removeAttribute('data-hackdemo-auth');
-  window.postMessage(
-    { source: 'hackdemo-web', type: 'LOGOUT' },
-    window.location.origin,
-  );
+  if (typeof document !== 'undefined') {
+    document.documentElement.removeAttribute('data-hackdemo-auth');
+  }
+  if (typeof window !== 'undefined') {
+    window.postMessage({ source: 'hackdemo-web', type: 'LOGOUT' }, window.location.origin);
+  }
 }
 
 // Listen for content script's ready signal
@@ -156,42 +160,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(() => {
-    // POST directly to the sign-in endpoint — skip the Auth.js sign-in page
-    // and go straight to Google OAuth.
+    if (typeof document === 'undefined') return;
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = api('/api/auth/signin/google');
-
     const callbackInput = document.createElement('input');
     callbackInput.type = 'hidden';
     callbackInput.name = 'callbackUrl';
     callbackInput.value = window.location.origin + '/';
     form.appendChild(callbackInput);
-
     document.body.appendChild(form);
     form.submit();
   }, []);
 
   const logout = useCallback(() => {
-    // Clear extension auth so it knows the user signed out
     clearExtensionAuth();
-
-    // Use a form POST (same pattern as login) so the browser follows
-    // the redirect chain and clears cookies properly.
+    if (typeof document === 'undefined') return;
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = api('/api/auth/signout');
-
     const callbackInput = document.createElement('input');
     callbackInput.type = 'hidden';
     callbackInput.name = 'callbackUrl';
     callbackInput.value = window.location.origin + '/';
     form.appendChild(callbackInput);
-
     document.body.appendChild(form);
     form.submit();
-
-    // Clear local state (the page is about to navigate away anyway)
     setUser(null);
   }, []);
 

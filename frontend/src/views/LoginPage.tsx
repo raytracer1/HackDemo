@@ -1,9 +1,10 @@
+'use client';
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import Link from "next/link";
 import { useAuth } from '../contexts/AuthContext';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'next/navigation';
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || '';
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 const features = [
   { icon: '🎥', title: 'Record your workflow', desc: 'Capture clicks, inputs, and navigation in your browser automatically.' },
@@ -13,7 +14,7 @@ const features = [
 
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
-  const [searchParams] = useSearchParams();
+  const searchParams = useSearchParams();
   const [clicked, setClicked] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -97,7 +98,7 @@ export default function LoginPage() {
             <svg className="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
           </div>
           <h1 className="text-xl font-bold text-gray-900">You're signed in</h1>
-          <p className="mt-2 text-gray-500"><Link to="/" className="text-hack-primary hover:underline">Go to home</Link></p>
+          <p className="mt-2 text-gray-500"><Link href="/" className="text-hack-primary hover:underline">Go to home</Link></p>
         </div>
       </div>
     );
@@ -108,7 +109,7 @@ export default function LoginPage() {
       {/* Left */}
       <div className="flex w-full items-center justify-center px-4 lg:w-5/12">
         <div className="w-full max-w-sm">
-          <Link to="/" className="inline-flex items-center gap-2 no-underline">
+          <Link href="/" className="inline-flex items-center gap-2 no-underline">
             <img src="/img/normal.png" alt="HackDemo" className="h-8 w-8 rounded-lg" />
             <span className="text-lg font-semibold text-gray-900">HackDemo</span>
           </Link>
@@ -123,10 +124,10 @@ export default function LoginPage() {
             </button>
           </p>
 
-          {searchParams.get('verified') === '1' && (
+          {searchParams?.get('verified') === '1' && (
             <div className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">Email verified! You can now sign in.</div>
           )}
-          {searchParams.get('error') === 'CredentialsSignin' && mode === 'login' && (
+          {searchParams?.get('error') === 'CredentialsSignin' && mode === 'login' && (
             <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">Sign in failed. Check your email and password, or verify your email if you just registered.</div>
           )}
 
@@ -204,9 +205,9 @@ export default function LoginPage() {
             <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-hack-primary focus:ring-hack-primary" />
             <span className="text-xs text-gray-500">
               I agree to the{' '}
-              <Link to="/terms" className="text-hack-primary hover:underline" target="_blank">Terms</Link>{' '}
+              <Link href="/terms" className="text-hack-primary hover:underline" target="_blank">Terms</Link>{' '}
               and{' '}
-              <Link to="/privacy" className="text-hack-primary hover:underline" target="_blank">Privacy Policy</Link>
+              <Link href="/privacy" className="text-hack-primary hover:underline" target="_blank">Privacy Policy</Link>
             </span>
           </label>
           <button onClick={handleGoogleSignIn} disabled={clicked || isLoading || !agreed}

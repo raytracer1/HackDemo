@@ -1,12 +1,13 @@
+'use client';
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import Link from "next/link";
 import { useAuth } from '../contexts/AuthContext';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 
 const PACK_PRICE = 9.90;
 const EST_DEMOS = 330;
-const API_BASE = import.meta.env.VITE_BACKEND_URL || '';
-const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || '';
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '';
 
 async function fetchApiToken(): Promise<string | null> {
   try {
@@ -31,7 +32,7 @@ export default function PricingPage() {
             New users get <span className="font-semibold text-hack-primary">$0.50 free</span> to try AI narration
           </p>
           {!isAuthenticated && (
-            <Link to="/login" className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-hack-primary no-underline hover:underline">Get started<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg></Link>
+            <Link href="/login" className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-hack-primary no-underline hover:underline">Get started<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg></Link>
           )}
         </div>
 
@@ -94,7 +95,7 @@ export default function PricingPage() {
             ) : isAuthenticated ? (
               <p className="text-xs text-gray-400">PayPal not configured</p>
             ) : (
-              <Link to="/login" className="flex w-full items-center justify-center gap-2 rounded-xl bg-hack-primary px-6 py-3 text-sm font-semibold text-white no-underline transition-all hover:bg-indigo-500 active:scale-95">
+              <Link href="/login" className="flex w-full items-center justify-center gap-2 rounded-xl bg-hack-primary px-6 py-3 text-sm font-semibold text-white no-underline transition-all hover:bg-indigo-500 active:scale-95">
                 Sign in to purchase
               </Link>
             )}

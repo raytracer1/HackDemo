@@ -15,7 +15,7 @@ export function useDemoData(demoId: string): UseDemoDataResult {
   useEffect(() => {
     if (!demoId || demoId === 'loading') { setLoading(false); return; }
 
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     let stopped = false;
 
     async function poll() {

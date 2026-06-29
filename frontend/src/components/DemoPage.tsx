@@ -1,5 +1,6 @@
+'use client';
 import { useState, useCallback, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 import { useDemoData } from '../hooks/useDemoData';
 import { synthesizeVideo, SynthesisProgress } from '../services/ffmpeg';
 import { extractFrames } from '../services/video-frames';
@@ -10,8 +11,9 @@ import DownloadBar from './DownloadBar';
 import type { SynthesisStatus, StepData } from '../shared/types';
 
 export default function DemoPage() {
-  const { demoId } = useParams<{ demoId: string }>();
-  const { demo, loading, error } = useDemoData(demoId || '');
+  const params = useParams();
+  const demoId = (params as Record<string, string> | null)?.demoId || '';
+  const { demo, loading, error } = useDemoData(demoId);
 
   const [synthesisStatus, setSynthesisStatus] = useState<SynthesisStatus>('idle');
   const [synthesisProgress, setSynthesisProgress] = useState<SynthesisProgress | null>(null);

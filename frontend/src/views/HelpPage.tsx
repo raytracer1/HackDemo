@@ -1,5 +1,6 @@
+'use client';
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import Link from "next/link";
 
 const steps = [
   {
@@ -79,7 +80,7 @@ export default function HelpPage() {
         {/* CTA */}
         <div className="mt-12 text-center">
           <p className="text-sm text-gray-500">Ready to try it out?</p>
-          <Link to="/login" className="mt-3 inline-flex items-center gap-2 rounded-xl bg-hack-primary px-6 py-3 text-sm font-semibold text-white no-underline shadow transition-all hover:bg-indigo-600">Get Started</Link>
+          <Link href="/login" className="mt-3 inline-flex items-center gap-2 rounded-xl bg-hack-primary px-6 py-3 text-sm font-semibold text-white no-underline shadow transition-all hover:bg-indigo-600">Get Started</Link>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
+'use client';
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import Link from "next/link";
 
 const posts = [
   {
@@ -25,10 +26,10 @@ export default function BlogPage() {
             <article key={post.slug} className="border-b border-gray-100 pb-8">
               <p className="text-xs text-gray-400">{post.date} · {post.readTime}</p>
               <h2 className="mt-1 text-xl font-bold text-gray-900">
-                <Link to={`/blog/${post.slug}`} className="no-underline hover:text-hack-primary transition-colors">{post.title}</Link>
+                <Link href={`/blog/${post.slug}`} className="no-underline hover:text-hack-primary transition-colors">{post.title}</Link>
               </h2>
               <p className="mt-2 text-sm text-gray-500">{post.excerpt}</p>
-              <Link to={`/blog/${post.slug}`} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-hack-primary no-underline hover:underline">
+              <Link href={`/blog/${post.slug}`} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-hack-primary no-underline hover:underline">
                 Read more
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </Link>
