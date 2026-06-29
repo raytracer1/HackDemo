@@ -15,14 +15,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'HackDemo — Turn Clicks into Product Demos with AI',
     description: 'Record your browser workflow and let AI generate narrated, annotated demo videos.',
-    images: '/img/normal.png',
+    images: '/img/og.jpg',
     siteName: 'HackDemo',
   },
   twitter: {
     card: 'summary',
     title: 'HackDemo — Turn Clicks into Product Demos with AI',
     description: 'Record your browser workflow and let AI generate narrated, annotated demo videos.',
-    images: '/img/normal.png',
+    images: '/img/og.jpg',
   },
   icons: { icon: '/img/normal.png' },
 };
