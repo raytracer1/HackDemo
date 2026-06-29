@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useDemoData } from '../hooks/useDemoData';
-import { synthesizeVideo, SynthesisProgress } from '../services/ffmpeg';
+import { synthesizeVideo, SynthesisProgress, preloadFfmpeg } from '../services/ffmpeg';
 import { extractFrames } from '../services/video-frames';
 import { generateMarkdown } from '../services/markdown';
 import VideoPlayer from './VideoPlayer';
@@ -23,6 +23,12 @@ export default function DemoPage() {
   const [frameUrls, setFrameUrls] = useState<Record<number, string>>({});
   const [extractingFrames, setExtractingFrames] = useState(false);
   const [retrying, setRetrying] = useState(false);
+
+  // Preload FFmpeg as soon as page loads
+  useEffect(() => {
+    if (!demoId || demoId === 'loading') return;
+    preloadFfmpeg().catch(() => {});
+  }, [demoId]);
 
   // Extract frames from video when demo loads
   useEffect(() => {
@@ -70,7 +76,8 @@ export default function DemoPage() {
       setVideoUrl(url);
       setSynthesisStatus('completed');
     } catch (err: any) {
-      setSynthesisError(err.message);
+      console.error('[HackDemo] Synthesis failed:', err);
+      setSynthesisError(err.message || String(err));
       setSynthesisStatus('error');
     }
   }, [demo, stepsWithFrames]);
@@ -235,7 +242,7 @@ export default function DemoPage() {
               )
             ) : synthesisStatus === 'error' ? (
               <>
-                <p className="text-red-400 text-sm">{synthesisError}</p>
+                <p className="text-red-400 text-sm">{synthesisError || 'Video generation failed, please try again'}</p>
                 <button
                   onClick={handleGenerateVideo}
                   className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition-colors text-gray-700"

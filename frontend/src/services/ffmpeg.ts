@@ -1,10 +1,12 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { fetchFile } from '@ffmpeg/util';
 import type { StepData } from '../shared/types';
 import { annotateScreenshot } from './canvas-annotate';
 
-const CORE_URL = '/ffmpeg/ffmpeg-core.js';
-const WASM_URL = '/ffmpeg/ffmpeg-core.wasm';
+function getBase() { return typeof window !== 'undefined' ? window.location.origin : ''; }
+function getCoreUrl() { return getBase() + '/ffmpeg/ffmpeg-core.js'; }
+function getWasmUrl() { return getBase() + '/ffmpeg/ffmpeg-core.wasm'; }
+function getWorkerUrl() { return getBase() + '/ffmpeg/ffmpeg-core.worker.js'; }
 
 export interface SynthesisProgress {
   status: 'loading_assets' | 'synthesizing' | 'completed' | 'error';
@@ -14,29 +16,27 @@ export interface SynthesisProgress {
 
 type ProgressCallback = (progress: SynthesisProgress) => void;
 
-/**
- * Synthesize a demo video from screenshots + audio using FFmpeg WASM.
- *
- * Strategy:
- * 1. Load each screenshot image, scale to 720p
- * 2. Create a video segment for each step (image shown for step.durationMs)
- * 3. Download each audio file
- * 4. Concatenate video segments + concatenate audio
- * 5. Mux into MP4
- */
+let ffmpegInstance: FFmpeg | null = null;
+let ffmpegReady = false;
+
+export async function preloadFfmpeg(): Promise<void> {
+  if (ffmpegReady) return;
+  if (!ffmpegInstance) ffmpegInstance = new FFmpeg();
+  await ffmpegInstance.load({ coreURL: getCoreUrl(), wasmURL: getWasmUrl(), workerURL: getWorkerUrl() });
+  ffmpegReady = true;
+}
+
 export async function synthesizeVideo(
   steps: StepData[],
   onProgress: ProgressCallback
 ): Promise<Blob> {
-  const ffmpeg = new FFmpeg();
-
-  // Load FFmpeg core
-  onProgress({ status: 'loading_assets', percent: 0, message: 'Loading FFmpeg...' });
-
-  await ffmpeg.load({
-    coreURL: await toBlobURL(CORE_URL, 'text/javascript'),
-    wasmURL: await toBlobURL(WASM_URL, 'application/wasm'),
-  });
+  if (!ffmpegInstance) ffmpegInstance = new FFmpeg();
+  if (!ffmpegReady) {
+    onProgress({ status: 'loading_assets', percent: 0, message: 'Loading FFmpeg...' });
+    await ffmpegInstance.load({ coreURL: getCoreUrl(), wasmURL: getWasmUrl(), workerURL: getWorkerUrl() });
+    ffmpegReady = true;
+  }
+  const ffmpeg = ffmpegInstance;
 
   const validSteps = steps.filter((s) => s.audioUrl && s.durationMs && s.screenshotUrl);
   if (validSteps.length === 0) {
@@ -49,7 +49,6 @@ export async function synthesizeVideo(
     message: `Downloading ${validSteps.length} screenshots...`,
   });
 
-  // Download all screenshots, annotate with highlights, and load audio
   for (let i = 0; i < validSteps.length; i++) {
     const step = validSteps[i];
     const percent = 10 + Math.round((i / validSteps.length) * 40);
@@ -60,13 +59,11 @@ export async function synthesizeVideo(
       message: `Annotating step ${i + 1}/${validSteps.length}...`,
     });
 
-    // Fetch original screenshot
     const originalData = await fetchFile(step.screenshotUrl);
     const originalDataUrl = URL.createObjectURL(
       new Blob([originalData as BlobPart], { type: 'image/png' })
     );
 
-    // Add subtitles (narration), skip UI highlights
     let finalDataUrl = originalDataUrl;
     if (step.narration) {
       try {
@@ -80,7 +77,6 @@ export async function synthesizeVideo(
     URL.revokeObjectURL(originalDataUrl);
     if (finalDataUrl !== originalDataUrl) URL.revokeObjectURL(finalDataUrl);
 
-    // Write audio
     if (step.audioUrl) {
       await ffmpeg.writeFile(`audio_${i}.mp3`, await fetchFile(step.audioUrl));
     }
@@ -92,8 +88,6 @@ export async function synthesizeVideo(
     message: 'Creating video from screenshots...',
   });
 
-  // Build filter complex for concatenating images with audio
-  // For each step: create a segment from the image + audio
   const filterParts: string[] = [];
   const concatInputs: string[] = [];
 
@@ -101,12 +95,10 @@ export async function synthesizeVideo(
     const step = validSteps[i];
     const durationSec = (step.durationMs! / 1000).toFixed(2);
 
-    // Loop the image for the duration, then fade out
     filterParts.push(
       `[${i}:v]loop=loop=-1:size=1:start=0,trim=duration=${durationSec},setpts=PTS-STARTPTS[v${i}]`
     );
 
-    // Audio: trim to match duration
     if (step.audioUrl) {
       filterParts.push(
         `[${validSteps.length + i}:a]atrim=duration=${durationSec},asetpts=PTS-STARTPTS[a${i}]`
@@ -114,15 +106,12 @@ export async function synthesizeVideo(
     }
   }
 
-  // Concatenate all video segments
   const vInputs = Array.from({ length: validSteps.length }, (_, i) => `[v${i}]`).join('');
   filterParts.push(`${vInputs}concat=n=${validSteps.length}:v=1:a=0[v]`);
 
-  // Concatenate all audio segments
   const aInputs = Array.from({ length: validSteps.length }, (_, i) => `[a${i}]`).join('');
   filterParts.push(`${aInputs}concat=n=${validSteps.length}:v=0:a=1[a]`);
 
-  // Build input args
   const args: string[] = [];
   for (let i = 0; i < validSteps.length; i++) {
     args.push('-loop', '1', '-t', '1', '-i', `step_${i}.png`);
@@ -133,13 +122,9 @@ export async function synthesizeVideo(
     }
   }
 
-  // Filter complex
   args.push('-filter_complex', filterParts.join(';'));
-
-  // Map outputs
   args.push('-map', '[v]', '-map', '[a]');
 
-  // Output settings
   args.push(
     '-c:v', 'libx264',
     '-preset', 'ultrafast',
@@ -152,30 +137,14 @@ export async function synthesizeVideo(
     'output.mp4'
   );
 
-  onProgress({
-    status: 'synthesizing',
-    percent: 70,
-    message: 'Encoding video...',
-  });
-
-  // Execute FFmpeg
+  onProgress({ status: 'synthesizing', percent: 70, message: 'Encoding video...' });
   await ffmpeg.exec(args);
 
-  onProgress({
-    status: 'synthesizing',
-    percent: 95,
-    message: 'Finalizing...',
-  });
+  onProgress({ status: 'synthesizing', percent: 95, message: 'Finalizing...' });
 
-  // Read output
   const data = await ffmpeg.readFile('output.mp4');
   const blob = new Blob([data as BlobPart], { type: 'video/mp4' });
 
-  onProgress({
-    status: 'completed',
-    percent: 100,
-    message: 'Video ready!',
-  });
-
+  onProgress({ status: 'completed', percent: 100, message: 'Video ready!' });
   return blob;
 }
