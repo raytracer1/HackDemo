@@ -32,6 +32,7 @@ export async function generateMetadata({
       description: post.description,
       type: 'article',
       publishedTime: post.date,
+      ...(post.dateModified ? { modifiedTime: post.dateModified } : {}),
       url,
       images: [{ url: '/img/og.jpg', width: 1200, height: 630, alt: post.title }],
     },
@@ -52,6 +53,7 @@ function buildArticleSchema(post: (typeof blogPosts)[number]) {
     headline: post.title,
     description: post.description,
     datePublished: post.date,
+    ...(post.dateModified ? { dateModified: post.dateModified } : {}),
     url,
     image: 'https://hackdemo.win/img/og.jpg',
     author: {

@@ -52,9 +52,11 @@ const organizationSchema = {
   description:
     'AI-powered product demo platform — record browser workflows and generate narrated video demos in 20+ languages.',
   sameAs: [
-    // Add social profiles as they become available, e.g.:
-    // 'https://twitter.com/hackdemo',
-    // 'https://github.com/hackdemo',
+    'https://github.com/raytracer1/HackDemo',
+    'https://x.com/BJ_Zheng',
+    // Add more profiles as they become available:
+    // 'https://linkedin.com/company/hackdemo',
+    // 'https://chromewebstore.google.com/detail/hackdemo/...',
   ],
 };
 
