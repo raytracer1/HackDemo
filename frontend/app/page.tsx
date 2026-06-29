@@ -12,6 +12,7 @@ const description =
 export const metadata: Metadata = {
   title,
   description,
+  alternates: { canonical: 'https://hackdemo.win/' },
   keywords: [
     'product demo',
     'browser recorder',

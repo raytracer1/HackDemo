@@ -11,6 +11,7 @@ const description =
 export const metadata: Metadata = {
   title,
   description,
+  alternates: { canonical: 'https://hackdemo.win/blog' },
   keywords: ['product demo blog', 'browser recording tips', 'AI narration', 'demo video guide'],
   openGraph: {
     title: `HackDemo Blog — ${title}`,
