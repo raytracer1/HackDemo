@@ -11,4 +11,15 @@ export const metadata: Metadata = {
   robots: { index: false }, // auth-gated page — not useful for search
 };
 
-export default function Page() { return <PageLayout><HistoryPage /></PageLayout>; }
+export default function Page() {
+  return (
+    <PageLayout
+      breadcrumbs={[
+        { name: 'Home', href: 'https://hackdemo.win/' },
+        { name: 'History', href: 'https://hackdemo.win/history' },
+      ]}
+    >
+      <HistoryPage />
+    </PageLayout>
+  );
+}

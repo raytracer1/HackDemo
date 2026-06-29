@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import PageLayout from '@/components/PageLayout';
 import BlogPostPage from '@/views/BlogPostPage';
+import JsonLd from '@/components/JsonLd';
 import { blogPosts } from '@/data/blog-posts';
 
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,54 @@ export async function generateMetadata({
   };
 }
 
-export default function Page() {
-  return <PageLayout><BlogPostPage /></PageLayout>;
+function buildArticleSchema(post: (typeof blogPosts)[number]) {
+  const url = `https://hackdemo.win/blog/${post.slug}`;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.description,
+    datePublished: post.date,
+    url,
+    image: 'https://hackdemo.win/img/og.jpg',
+    author: {
+      '@type': 'Organization',
+      name: 'HackDemo',
+      url: 'https://hackdemo.win',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'HackDemo',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://hackdemo.win/img/normal.png',
+      },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': url,
+    },
+  };
+}
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const post = blogPosts.find((p) => p.slug === slug);
+
+  return (
+    <PageLayout
+      breadcrumbs={[
+        { name: 'Home', href: 'https://hackdemo.win/' },
+        { name: 'Blog', href: 'https://hackdemo.win/blog' },
+        { name: post?.title || 'Post', href: `https://hackdemo.win/blog/${slug}` },
+      ]}
+    >
+      {post && <JsonLd data={buildArticleSchema(post)} />}
+      <BlogPostPage />
+    </PageLayout>
+  );
 }

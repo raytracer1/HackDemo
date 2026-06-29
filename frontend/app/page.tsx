@@ -33,5 +33,9 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <PageLayout><HomePage /></PageLayout>;
+  return (
+    <PageLayout breadcrumbs={[{ name: 'Home', href: 'https://hackdemo.win/' }]}>
+      <HomePage />
+    </PageLayout>
+  );
 }

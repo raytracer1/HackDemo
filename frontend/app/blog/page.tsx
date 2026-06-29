@@ -25,4 +25,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Page() { return <PageLayout><BlogPage /></PageLayout>; }
+export default function Page() {
+  return (
+    <PageLayout
+      breadcrumbs={[
+        { name: 'Home', href: 'https://hackdemo.win/' },
+        { name: 'Blog', href: 'https://hackdemo.win/blog' },
+      ]}
+    >
+      <BlogPage />
+    </PageLayout>
+  );
+}

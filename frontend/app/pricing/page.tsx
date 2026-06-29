@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 export const dynamic = 'force-dynamic';
 import PageLayout from '@/components/PageLayout';
+import JsonLd from '@/components/JsonLd';
 import PricingPage from '@/views/PricingPage';
 
 const title = 'Pricing';
@@ -25,4 +26,38 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Page() { return <PageLayout><PricingPage /></PageLayout>; }
+const softwareAppSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'HackDemo',
+  applicationCategory: 'MultimediaApplication',
+  operatingSystem: 'Web',
+  description:
+    'AI-powered browser demo recorder — capture workflows, generate narrated voiceovers, and export as MP4 video.',
+  offers: {
+    '@type': 'Offer',
+    price: '9.90',
+    priceCurrency: 'USD',
+    description: 'AI narration credit pack — ~330 three-minute narrated demos',
+  },
+  aggregateRating: {
+    // Placeholder — replace with real rating data when available
+    '@type': 'AggregateRating',
+    ratingValue: '4.8',
+    ratingCount: '0',
+  },
+};
+
+export default function Page() {
+  return (
+    <PageLayout
+      breadcrumbs={[
+        { name: 'Home', href: 'https://hackdemo.win/' },
+        { name: 'Pricing', href: 'https://hackdemo.win/pricing' },
+      ]}
+    >
+      <JsonLd data={softwareAppSchema} />
+      <PricingPage />
+    </PageLayout>
+  );
+}

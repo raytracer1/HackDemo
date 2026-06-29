@@ -9,4 +9,15 @@ export const metadata: Metadata = {
   robots: { index: false }, // user-specific pages — not useful for search
 };
 
-export default function Page() { return <PageLayout><DemoPage /></PageLayout>; }
+export default function Page() {
+  return (
+    <PageLayout
+      breadcrumbs={[
+        { name: 'Home', href: 'https://hackdemo.win/' },
+        { name: 'Demo', href: '#' },
+      ]}
+    >
+      <DemoPage />
+    </PageLayout>
+  );
+}
