@@ -98,6 +98,19 @@ const howToSchema = {
   ],
 };
 
+const speakableSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  url: 'https://hackdemo.win/help',
+  speakable: {
+    '@type': 'SpeakableSpecification',
+    xpath: [
+      '/html/head/title',
+      '/html/head/meta[@name="description"]/@content',
+    ],
+  },
+};
+
 export default function Page() {
   return (
     <PageLayout
@@ -108,6 +121,7 @@ export default function Page() {
     >
       <JsonLd data={faqSchema} />
       <JsonLd data={howToSchema} />
+      <JsonLd data={speakableSchema} />
       <HelpPage />
     </PageLayout>
   );

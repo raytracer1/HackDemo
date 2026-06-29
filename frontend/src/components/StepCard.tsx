@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import type { StepData } from '../shared/types';
 
 interface Props {
@@ -30,8 +31,15 @@ export default function StepCard({ step, index, total }: Props) {
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden transition-colors hover:border-gray-300">
         <div className="flex flex-col md:flex-row">
           {step.screenshotUrl && (
-            <div className="md:w-1/2 flex-shrink-0">
-              <img src={step.screenshotUrl} alt={`Step ${index + 1}`} className="w-full h-40 md:h-full object-cover" loading="lazy" />
+            <div className="md:w-1/2 flex-shrink-0 relative h-40 md:h-auto md:min-h-[200px]">
+              <Image
+                src={step.screenshotUrl}
+                alt={`Step ${index + 1}`}
+                fill
+                className="object-cover"
+                unoptimized
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
             </div>
           )}
           <div className="p-4 flex-1 min-w-0">

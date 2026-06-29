@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from "next/link";
+import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams } from 'next/navigation';
+import logo from '/public/img/normal.png';
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
@@ -109,7 +111,7 @@ export default function LoginPage() {
       <div className="flex w-full items-center justify-center px-4 lg:w-5/12">
         <div className="w-full max-w-sm">
           <Link href="/" className="inline-flex items-center gap-2 no-underline">
-            <img src="/img/normal.png" alt="HackDemo" className="h-8 w-8 rounded-lg" />
+            <Image src={logo} alt="HackDemo" width={32} height={32} className="rounded-lg" />
             <span className="text-lg font-semibold text-gray-900">HackDemo</span>
           </Link>
 
@@ -235,7 +237,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-7/12 bg-gray-50 items-center justify-center px-12 border-l border-gray-200">
         <div className="max-w-md">
           <div className="mb-8 text-center">
-            <img src="/img/normal.png" alt="HackDemo" className="mx-auto h-16 w-16 rounded-xl" />
+            <Image src={logo} alt="HackDemo" width={64} height={64} className="mx-auto rounded-xl" />
             <p className="mt-4 text-lg text-gray-600">Turn clicks into <span className="font-semibold text-hack-primary">product demos</span></p>
           </div>
           <div className="space-y-6">

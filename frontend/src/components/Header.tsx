@@ -1,7 +1,9 @@
 'use client';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useRef, useEffect } from 'react';
+import logo from '/public/img/normal.png';
 
 export default function Header() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -27,7 +29,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2.5 no-underline">
-          <img src="/img/normal.png" alt="HackDemo" className="h-9 w-9 rounded-lg" />
+          <Image src={logo} alt="HackDemo" width={36} height={36} className="rounded-lg" priority />
           <span className="text-lg font-semibold tracking-tight text-gray-900">HackDemo</span>
         </Link>
 
@@ -43,7 +45,11 @@ export default function Header() {
           ) : isAuthenticated && user ? (
             <div className="relative" ref={dropdownRef}>
               <button onClick={() => setDropdownOpen(o => !o)} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-100">
-                <img src={user.image} alt={user.name} className="h-7 w-7 rounded-full ring-2 ring-hack-primary/30" />
+                {user.image ? (
+                  <Image src={user.image} alt={user.name || 'User'} width={28} height={28} className="rounded-full ring-2 ring-hack-primary/30" />
+                ) : (
+                  <div className="h-7 w-7 rounded-full bg-gray-300 ring-2 ring-hack-primary/30" />
+                )}
                 <span className="hidden sm:inline max-w-[120px] truncate">{user.name}</span>
                 <svg className="h-4 w-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
               </button>

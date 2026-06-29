@@ -8,6 +8,8 @@ export interface BlogPostMeta {
   readTime: string;
   description: string;
   keywords?: string[];
+  section?: string; // article:section — broad category (e.g. "Comparisons", "Guides")
+  tags?: string[]; // article:tag — specific topic tags for OpenGraph and schema
 }
 
 export const blogPosts: BlogPostMeta[] = [
@@ -20,5 +22,7 @@ export const blogPosts: BlogPostMeta[] = [
     description:
       'HackDemo vs Guidde — a head-to-head comparison of features, pricing, and developer experience for browser demo recording tools.',
     keywords: ['hackdemo', 'guidde', 'product demo', 'browser recorder', 'comparison'],
+    section: 'Comparisons',
+    tags: ['product demo', 'browser recorder', 'AI narration', 'guidde', 'saas tools'],
   },
 ];

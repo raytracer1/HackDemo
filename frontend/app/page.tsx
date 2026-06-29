@@ -65,10 +65,24 @@ const softwareAppSchema = {
   ],
 };
 
+const speakableSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  url: 'https://hackdemo.win/',
+  speakable: {
+    '@type': 'SpeakableSpecification',
+    xpath: [
+      '/html/head/title',
+      '/html/head/meta[@name="description"]/@content',
+    ],
+  },
+};
+
 export default function Page() {
   return (
     <PageLayout breadcrumbs={[{ name: 'Home', href: 'https://hackdemo.win/' }]}>
       <JsonLd data={softwareAppSchema} />
+      <JsonLd data={speakableSchema} />
       <HomePage />
     </PageLayout>
   );
