@@ -238,7 +238,7 @@ export default function DemoPage() {
                 <p className="text-red-400 text-sm">{synthesisError}</p>
                 <button
                   onClick={handleGenerateVideo}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors"
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm transition-colors text-gray-700"
                 >
                   Retry
                 </button>
@@ -247,7 +247,7 @@ export default function DemoPage() {
               <>
                 <div className="w-full max-w-md px-8">
                   {/* Progress bar */}
-                  <div className="w-full bg-gray-800 rounded-full h-2 mb-3">
+                  <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
                     <div
                       className="bg-hack-primary h-2 rounded-full transition-all duration-500"
                       style={{ width: `${synthesisProgress?.percent || 0}%` }}
