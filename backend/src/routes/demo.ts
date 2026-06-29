@@ -308,6 +308,53 @@ export default async function demoRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * Parse MP3 file to calculate exact duration from frame headers.
+   */
+  function getMp3Duration(buf: Buffer): number {
+    if (buf.length < 4) return 0;
+    let offset = 0;
+
+    // Skip ID3v2 tag
+    if (buf.length >= 10 && buf.toString('ascii', 0, 3) === 'ID3') {
+      const size = ((buf[6] & 0x7f) << 21) | ((buf[7] & 0x7f) << 14) | ((buf[8] & 0x7f) << 7) | (buf[9] & 0x7f);
+      offset = 10 + size;
+    }
+
+    const bitrateTableV1L3 = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0];
+    const bitrateTableV2L3 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0];
+    const sampleRateTable: Record<number, number[]> = {
+      3: [44100, 48000, 32000], 2: [22050, 24000, 16000], 0: [11025, 12000, 8000],
+    };
+
+    let totalSamples = 0;
+    let sampleRate = 0;
+
+    while (offset + 4 <= buf.length) {
+      if (buf[offset] !== 0xff || (buf[offset + 1] & 0xe0) !== 0xe0) { offset++; continue; }
+      const version = (buf[offset + 1] >> 3) & 0x03;
+      const layer = (buf[offset + 1] >> 1) & 0x03;
+      if (version === 1 || layer !== 1) { offset++; continue; }
+      const bitrateIndex = (buf[offset + 2] >> 4) & 0x0f;
+      const sampleRateIndex = (buf[offset + 2] >> 2) & 0x03;
+      const padding = (buf[offset + 2] >> 1) & 0x01;
+      if (bitrateIndex === 0 || bitrateIndex === 15 || sampleRateIndex === 3) { offset++; continue; }
+      const currentSR = sampleRateTable[version]?.[sampleRateIndex];
+      if (!currentSR) { offset++; continue; }
+      if (sampleRate === 0) sampleRate = currentSR;
+      const isMpeg1 = version === 3;
+      const bitrate = isMpeg1 ? bitrateTableV1L3[bitrateIndex] : bitrateTableV2L3[bitrateIndex];
+      const samplesPerFrame = isMpeg1 ? 1152 : 576;
+      const frameLen = Math.floor((isMpeg1 ? 144000 : 72000) * bitrate / currentSR) + padding;
+      if (frameLen <= 0 || offset + frameLen > buf.length) break;
+      totalSamples += samplesPerFrame;
+      offset += frameLen;
+    }
+
+    if (sampleRate === 0 || totalSamples === 0) return 0;
+    return Math.round((totalSamples * 1000) / sampleRate);
+  }
+
+  /**
    * POST /api/demos/:id/tts — process TTS for all steps with narration but no audio.
    * Called by worker after DeepSeek narration is complete.
    * Internally parallelises Google TTS calls (max 5 concurrent).
@@ -409,8 +456,7 @@ export default async function demoRoutes(fastify: FastifyInstance) {
 
     for (const [stepIndex, buffers] of grouped) {
       const full = Buffer.concat(buffers);
-      // Estimate duration from MP3 file size (~128kbps)
-      const durationMs = Math.round((full.length * 8) / 128000 * 1000);
+      const durationMs = getMp3Duration(full);
       const key = await uploadAudio(id, stepIndex, full);
       steps[stepIndex].audio_key = key;
       steps[stepIndex].duration_ms = durationMs;
