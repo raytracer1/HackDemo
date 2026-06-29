@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
@@ -19,6 +19,7 @@ async function fetchApiToken(): Promise<string | null> {
 
 export default function PricingPage() {
   const { isAuthenticated, refresh } = useAuth();
+  useEffect(() => { document.title = 'Pricing — HackDemo'; }, []);
   const [purchased, setPurchased] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  useEffect(() => { document.title = 'Sign In — HackDemo'; }, []);
   const [submitting, setSubmitting] = useState(false);
 
   const handleGoogleSignIn = () => { setClicked(true); login(); };
