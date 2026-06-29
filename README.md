@@ -4,7 +4,7 @@ Record your browser workflow and turn clicks into narrated, annotated demo video
 
 ## Inspiration
 
-Everytime I participate in a hackathon, after the project is built, I need to spend two or three hours to generate a demo video. That is such painful. I found a tool guidde which generates demo videos very easily, but a litter expensive. So I think I can build another tool which can provide 80% function of guidde but only charge 1% of guidde's cost. 
+Everytime I participate in a hackathon, after the project is built, I need to spend two or three hours to generate a demo video. That is such painful. I found a tool called guidde which generates demo videos very easily, but very expensive. So I think I can build another tool which can provide 80% function of guidde but only charge 1% of guidde's cost. 
 
 ## What it does
 
