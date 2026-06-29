@@ -45,8 +45,9 @@ export default function DemoPage() {
     extractFrames(demo.videoUrl, timestamps)
       .then((frames) => {
         const map: Record<number, string> = {};
-        frames.forEach((f, i) => {
-          if (stepsWithFrames[i]) map[stepsWithFrames[i].index] = f.dataUrl;
+        frames.forEach((f) => {
+          const step = stepsWithFrames[f.stepIndex];
+          if (step) map[step.index] = f.dataUrl;
         });
         setFrameUrls(map);
       })
