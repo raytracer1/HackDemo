@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-export const dynamic = 'force-dynamic';
+// ISR — terms of service changes very rarely, revalidate daily
+export const revalidate = 86400;
 import PageLayout from '@/components/PageLayout';
 import TermsPage from '@/views/TermsPage';
 

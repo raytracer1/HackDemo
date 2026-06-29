@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-export const dynamic = 'force-dynamic';
+// ISR — revalidate landing page every hour for freshness without sacrificing performance
+export const revalidate = 3600;
 import PageLayout from '@/components/PageLayout';
 import HomePage from '@/views/HomePage';
 

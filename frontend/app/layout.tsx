@@ -79,6 +79,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
+        {/* Preconnect to critical external origins for faster initial connections */}
+        <link rel="preconnect" href="https://api.hackdemo.win" />
+        <link rel="preconnect" href="https://accounts.google.com" />
+        <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
+        <link rel="dns-prefetch" href="https://www.paypal.com" />
+        <link rel="dns-prefetch" href="https://www.paypalobjects.com" />
         <JsonLd data={organizationSchema} />
         <JsonLd data={websiteSchema} />
       </head>

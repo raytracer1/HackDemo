@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-export const dynamic = 'force-dynamic';
+// ISR — pricing may change occasionally, revalidate hourly
+export const revalidate = 3600;
 import PageLayout from '@/components/PageLayout';
 import JsonLd from '@/components/JsonLd';
 import PricingPage from '@/views/PricingPage';

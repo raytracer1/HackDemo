@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-export const dynamic = 'force-dynamic';
+// ISR — help content changes rarely, revalidate daily
+export const revalidate = 86400;
 import PageLayout from '@/components/PageLayout';
 import JsonLd from '@/components/JsonLd';
 import HelpPage from '@/views/HelpPage';

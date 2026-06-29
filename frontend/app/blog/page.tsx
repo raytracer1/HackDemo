@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-export const dynamic = 'force-dynamic';
+// ISR — blog list changes only on deployment, revalidate hourly
+export const revalidate = 3600;
 import PageLayout from '@/components/PageLayout';
 import BlogPage from '@/views/BlogPage';
 

@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-export const dynamic = 'force-dynamic';
+// ISR — privacy policy changes very rarely, revalidate daily
+export const revalidate = 86400;
 import PageLayout from '@/components/PageLayout';
 import PrivacyPage from '@/views/PrivacyPage';
 

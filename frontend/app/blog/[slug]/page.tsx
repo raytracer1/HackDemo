@@ -4,7 +4,12 @@ import BlogPostPage from '@/views/BlogPostPage';
 import JsonLd from '@/components/JsonLd';
 import { blogPosts } from '@/data/blog-posts';
 
-export const dynamic = 'force-dynamic';
+// ISR — blog content changes only on deployment; pre-render known posts at build time
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  return blogPosts.map((post) => ({ slug: post.slug }));
+}
 
 export async function generateMetadata({
   params,
