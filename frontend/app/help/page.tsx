@@ -58,12 +58,24 @@ const faqSchema = {
   ],
 };
 
+const tutorialVideo = {
+  '@type': 'VideoObject',
+  name: 'How to Use HackDemo — Tutorial Walkthrough',
+  description:
+    'Step-by-step walkthrough of HackDemo: record browser workflows, generate AI narration, and export MP4 demo videos.',
+  thumbnailUrl: ['https://img.youtube.com/vi/ABiLmOraxXc/maxresdefault.jpg'],
+  contentUrl: 'https://www.youtube.com/watch?v=ABiLmOraxXc',
+  embedUrl: 'https://www.youtube.com/embed/ABiLmOraxXc',
+  uploadDate: '2026-06-29',
+};
+
 const howToSchema = {
   '@context': 'https://schema.org',
   '@type': 'HowTo',
   name: 'How to Create a Product Demo with HackDemo',
   description:
     'Record your browser workflow and let AI generate a narrated, annotated demo video in 5 steps.',
+  video: tutorialVideo,
   step: [
     {
       '@type': 'HowToStep',
@@ -98,6 +110,11 @@ const howToSchema = {
   ],
 };
 
+const videoObjectSchema = {
+  '@context': 'https://schema.org',
+  ...tutorialVideo,
+};
+
 const speakableSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
@@ -121,6 +138,7 @@ export default function Page() {
     >
       <JsonLd data={faqSchema} />
       <JsonLd data={howToSchema} />
+      <JsonLd data={videoObjectSchema} />
       <JsonLd data={speakableSchema} />
       <HelpPage />
     </PageLayout>
