@@ -62,18 +62,28 @@ function buildArticleSchema(post: (typeof blogPosts)[number]) {
     url,
     image: 'https://hackdemo.win/img/og.jpg',
     author: {
-      '@type': 'Organization',
-      name: 'HackDemo',
-      url: 'https://hackdemo.win',
+      '@type': 'Person',
+      name: 'BJ Zheng',
+      sameAs: 'https://x.com/BJ_Zheng',
     },
     publisher: {
       '@type': 'Organization',
       name: 'HackDemo',
+      url: 'https://hackdemo.win',
       logo: {
         '@type': 'ImageObject',
         url: 'https://hackdemo.win/img/normal.png',
       },
     },
+    citation: [
+      {
+        '@type': 'CreativeWork',
+        name: 'Guidde — AI-Powered Video Documentation Platform',
+        url: 'https://www.guidde.com',
+        description:
+          'Guidde is a browser-based demo recording tool used as a comparison reference in this article.',
+      },
+    ],
     mainEntityOfPage: {
       '@type': 'WebPage',
       '@id': url,
