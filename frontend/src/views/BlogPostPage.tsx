@@ -15,6 +15,7 @@ const postComponents: Record<string, React.ComponentType> = {
   'browser-extensions-demo-recording-2026': dynamic(() => import('./blog-posts/browser-extensions-demo-recording-2026')),
   'export-high-quality-mp4-demo-videos': dynamic(() => import('./blog-posts/export-high-quality-mp4-demo-videos')),
   'ai-generated-product-demos-2026-trends': dynamic(() => import('./blog-posts/ai-generated-product-demos-2026-trends')),
+  'hackathon-demo-guide': dynamic(() => import('./blog-posts/hackathon-demo-guide')),
 };
 
 /* ------------------------------------------------------------------ */

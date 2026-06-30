@@ -85,4 +85,15 @@ export const blogPosts: BlogPostMeta[] = [
     section: 'Trends',
     tags: ['AI trends', 'video automation', 'product marketing', 'generative AI', 'demo innovation'],
   },
+  {
+    slug: 'hackathon-demo-guide',
+    title: 'How to Create a Winning Hackathon Demo in Under 5 Minutes',
+    date: '2026-06-30',
+    readTime: '8 min read',
+    description:
+      'Stop submitting silent screen recordings. Learn how to create a polished, AI-narrated, annotated demo video for your hackathon submission — in under 5 minutes — and what judges actually look for.',
+    keywords: ['hackathon demo', 'how to win hackathon', 'Devpost demo video', 'AI demo generator', 'hackathon presentation', 'pitch video'],
+    section: 'Guides',
+    tags: ['hackathon', 'demo video', 'Devpost', 'pitch', 'AI narration', 'hackathon tips'],
+  },
 ];
