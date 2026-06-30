@@ -5,7 +5,7 @@ import PageLayout from '@/components/PageLayout';
 import JsonLd from '@/components/JsonLd';
 import HomePage from '@/views/HomePage';
 
-const title = 'Ship a Pitch-Ready Demo Before the Hackathon Deadline — HackDemo';
+const title = 'Ship a Pitch-Ready Demo Before the Hackathon Deadline';
 const description =
   'Built for hackathon teams. Record your prototype, and HackDemo auto-generates AI narration, annotations, and voiceover. Export a polished MP4 ready for Devpost, judges, and pitch decks — in under 5 minutes. Start free.';
 
