@@ -62,7 +62,7 @@ export default function PostContent() {
       <section>
         <h2 className="text-lg font-semibold text-gray-900">Getting Started With AI Narration</h2>
         <p className="mt-2">HackDemo integrates AI narration directly into the recording workflow — record your browser actions, and the platform <strong>automatically generates step-by-step narration</strong> synced to each click. No scripting, no recording booth, no editing.</p>
-        <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm"><strong>Try AI narration free —</strong> new users get <strong>$0.50 in credits</strong>, enough for 150+ narrated demos.{' '}<Link href="/login" className="font-medium text-hack-primary hover:underline">Start recording →</Link></p>
+        <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm"><strong>Try AI narration free —</strong> new users get <strong>$0.50 in credits</strong>, enough for 150+ narrated demos.{' '}<a href="https://chromewebstore.google.com/detail/hackdemo-%E2%80%94-ai-demo-record/dlkbndgmhlmddbihhjilapjncpbenhkj" target="_blank" rel="noopener noreferrer" className="font-medium text-hack-primary hover:underline">Start recording →</a></p>
       </section>
     </article>
   );

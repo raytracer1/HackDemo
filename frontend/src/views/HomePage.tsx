@@ -46,7 +46,7 @@ const differentiators = [
       </svg>
     ),
     title: 'Install in Seconds',
-    description: 'One-click Chrome extension. No setup, no config — install during team formation and start recording your prototype immediately.',
+    description: <>One-click{' '}<a href="https://chromewebstore.google.com/detail/hackdemo-%E2%80%94-ai-demo-record/dlkbndgmhlmddbihhjilapjncpbenhkj" target="_blank" rel="noopener noreferrer" className="text-hack-primary hover:underline">Chrome extension</a>. No setup, no config — install during team formation and start recording your prototype immediately.</>,
   },
   {
     icon: (
@@ -68,7 +68,7 @@ const howSteps = [
       </svg>
     ),
     title: 'Record While You Hack',
-    description: 'Install the Chrome extension, click record, and walk through your prototype. Zero setup, zero friction — keep building.',
+    description: <><a href="https://chromewebstore.google.com/detail/hackdemo-%E2%80%94-ai-demo-record/dlkbndgmhlmddbihhjilapjncpbenhkj" target="_blank" rel="noopener noreferrer" className="text-hack-primary hover:underline">Install the Chrome extension</a>, click record, and walk through your prototype. Zero setup, zero friction — keep building.</>,
   },
   {
     num: 2,
@@ -132,7 +132,8 @@ const faqs = [
 export default function HomePage() {
   const { isAuthenticated } = useAuth();
 
-  const ctaHref = isAuthenticated ? '/demo/loading' : '/login';
+  const extStoreUrl = 'https://chromewebstore.google.com/detail/hackdemo-%E2%80%94-ai-demo-record/dlkbndgmhlmddbihhjilapjncpbenhkj';
+  const ctaHref = extStoreUrl;
   const ctaText = isAuthenticated ? 'Create a Demo' : 'Start Free';
 
   return (
@@ -149,10 +150,10 @@ export default function HomePage() {
             Record your prototype, let AI handle the narration and annotations. In under 5 minutes, you get a polished MP4 — ready for Devpost, judges, and your pitch deck.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href={ctaHref} className="inline-flex items-center gap-2 rounded-xl bg-hack-primary px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-hack-primary/25 no-underline transition-all hover:bg-indigo-600 active:scale-95">
+            <a href={ctaHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-hack-primary px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-hack-primary/25 no-underline transition-all hover:bg-indigo-600 active:scale-95">
               {ctaText}
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-            </Link>
+            </a>
             <a href="#demo-video" className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-8 py-3.5 text-base font-medium text-gray-600 no-underline shadow-sm transition-all hover:border-gray-300 hover:text-gray-900">
               <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
               Watch Demo
@@ -288,9 +289,15 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/login" className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-600 no-underline shadow-sm transition-all hover:border-gray-300 hover:text-gray-900">
-                Get Started Free
-              </Link>
+              {isAuthenticated ? (
+                <a href={extStoreUrl} target="_blank" rel="noopener noreferrer" className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-600 no-underline shadow-sm transition-all hover:border-gray-300 hover:text-gray-900">
+                  Get Started Free
+                </a>
+              ) : (
+                <Link href="/login" className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-600 no-underline shadow-sm transition-all hover:border-gray-300 hover:text-gray-900">
+                  Get Started Free
+                </Link>
+              )}
             </div>
 
             {/* Pro */}
@@ -347,10 +354,10 @@ export default function HomePage() {
           <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">Ready to win your next hackathon?</h2>
           <p className="mt-4 text-gray-500">Start free with $0.50 credits. No credit card. Install in seconds. Record your prototype, generate a pitch-ready demo, and submit before the deadline — all in under 5 minutes.</p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href={ctaHref} className="inline-flex items-center gap-2 rounded-xl bg-hack-primary px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-hack-primary/25 no-underline transition-all hover:bg-indigo-600 active:scale-95">
+            <a href={ctaHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-hack-primary px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-hack-primary/25 no-underline transition-all hover:bg-indigo-600 active:scale-95">
               {ctaText}
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-            </Link>
+            </a>
             <Link href="/help" className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-8 py-3.5 text-base font-medium text-gray-600 no-underline shadow-sm transition-all hover:border-gray-300 hover:text-gray-900">
               Learn more
             </Link>

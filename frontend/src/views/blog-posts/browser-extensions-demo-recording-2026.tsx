@@ -85,7 +85,7 @@ export default function PostContent() {
       <section>
         <h2 className="text-lg font-semibold text-gray-900">The Verdict</h2>
         <p className="mt-2">For most indie makers and small teams creating product demos in 2026, <strong>HackDemo offers the best balance of AI-powered automation, export quality, and cost</strong>. If you need enterprise collaboration features, Guidde is the alternative — but you'll pay 10–50× more per demo.</p>
-        <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm"><strong>Try HackDemo free —</strong> new users get <strong>$0.50 in credits</strong>, enough for 150+ AI-narrated demos.{' '}<Link href="/login" className="font-medium text-hack-primary hover:underline">Start recording →</Link></p>
+        <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm"><strong>Try HackDemo free —</strong> new users get <strong>$0.50 in credits</strong>, enough for 150+ AI-narrated demos.{' '}<a href="https://chromewebstore.google.com/detail/hackdemo-%E2%80%94-ai-demo-record/dlkbndgmhlmddbihhjilapjncpbenhkj" target="_blank" rel="noopener noreferrer" className="font-medium text-hack-primary hover:underline">Start recording →</a></p>
       </section>
     </article>
   );

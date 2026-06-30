@@ -72,7 +72,7 @@ export default function PostContent() {
       <section>
         <h2 className="text-lg font-semibold text-gray-900">The Bottom Line</h2>
         <p className="mt-2">If you're an enterprise team with a dedicated training budget and need collaboration features, Guidde is a solid choice. But if you're an indie developer, a startup founder, or a hackathon participant who just wants to <strong>record a workflow and get a professional demo video in 30 seconds</strong>, HackDemo gives you the same core quality at less than 1% of the cost.</p>
-        <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm"><strong>Try HackDemo free —</strong> new users get <strong>$0.50 in credits</strong>, enough for 150+ AI-narrated demos. No credit card required.{' '}<Link href="/login" className="font-medium text-hack-primary hover:underline">Get started →</Link></p>
+        <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm"><strong>Try HackDemo free —</strong> new users get <strong>$0.50 in credits</strong>, enough for 150+ AI-narrated demos. No credit card required.{' '}<a href="https://chromewebstore.google.com/detail/hackdemo-%E2%80%94-ai-demo-record/dlkbndgmhlmddbihhjilapjncpbenhkj" target="_blank" rel="noopener noreferrer" className="font-medium text-hack-primary hover:underline">Get started →</a></p>
       </section>
     </article>
   );

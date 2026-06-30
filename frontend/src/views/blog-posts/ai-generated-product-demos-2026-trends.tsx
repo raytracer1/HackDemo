@@ -42,7 +42,7 @@ export default function PostContent() {
       </section>
 
       <section>
-        <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm"><strong>Start creating AI-powered demos today —</strong> new users get <strong>$0.50 free</strong> to try AI narration.{' '}<Link href="/login" className="font-medium text-hack-primary hover:underline">Get started →</Link></p>
+        <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm"><strong>Start creating AI-powered demos today —</strong> new users get <strong>$0.50 free</strong> to try AI narration.{' '}<a href="https://chromewebstore.google.com/detail/hackdemo-%E2%80%94-ai-demo-record/dlkbndgmhlmddbihhjilapjncpbenhkj" target="_blank" rel="noopener noreferrer" className="font-medium text-hack-primary hover:underline">Get started →</a></p>
       </section>
     </article>
   );

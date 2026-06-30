@@ -79,7 +79,7 @@ export default function PostContent() {
         <h2 className="text-lg font-semibold text-gray-900">The HackDemo Approach: One-Click Export</h2>
         <p className="mt-2">HackDemo handles all of this automatically. When you click "Generate Video" on your demo page, the platform applies optimized FFmpeg settings — 1080p resolution, H.264 encoding, 30 FPS, AAC audio — and delivers a web-optimized MP4 ready to share or embed. No manual configuration required.</p>
         <p className="mt-2">If you need <Link href="/blog/how-to-create-product-demo-best-practices" className="text-hack-primary hover:underline">more demo creation tips</Link>, check our best practices guide for the full workflow.</p>
-        <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm"><strong>Export your first demo free —</strong> new users get <strong>$0.50 in credits</strong>. No credit card required.{' '}<Link href="/login" className="font-medium text-hack-primary hover:underline">Get started →</Link></p>
+        <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm"><strong>Export your first demo free —</strong> new users get <strong>$0.50 in credits</strong>. No credit card required.{' '}<a href="https://chromewebstore.google.com/detail/hackdemo-%E2%80%94-ai-demo-record/dlkbndgmhlmddbihhjilapjncpbenhkj" target="_blank" rel="noopener noreferrer" className="font-medium text-hack-primary hover:underline">Get started →</a></p>
       </section>
     </article>
   );

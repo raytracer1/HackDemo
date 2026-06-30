@@ -44,7 +44,7 @@ export default function PostContent() {
         <p className="mt-2">Here's the workflow that hackathon winners use:</p>
 
         <h3 className="mt-4 font-semibold text-gray-800">Step 1: Install the Extension (30 seconds)</h3>
-        <p className="mt-1">Add the HackDemo Chrome extension. No config, no API keys, no setup wizard. Sign in with Google and you're ready.</p>
+        <p className="mt-1">Add the{' '}<a href="https://chromewebstore.google.com/detail/hackdemo-%E2%80%94-ai-demo-record/dlkbndgmhlmddbihhjilapjncpbenhkj" target="_blank" rel="noopener noreferrer" className="text-hack-primary hover:underline">HackDemo Chrome extension</a>. No config, no API keys, no setup wizard. Sign in with Google and you're ready.</p>
 
         <h3 className="mt-4 font-semibold text-gray-800">Step 2: Record Your Flow (1–2 minutes)</h3>
         <p className="mt-1">Click "Start Capture" and walk through your product's key user journey. Don't worry about perfection — HackDemo detects every click, input, and page navigation automatically. Focus on showing the <strong>problem → solution path</strong> that judges care about.</p>
@@ -158,7 +158,7 @@ export default function PostContent() {
       <section>
         <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm">
           <strong>Win your next hackathon with a pitch-ready demo —</strong> new users get <strong>$0.50 free</strong> credits, enough for your first fully-narrated demo. No credit card required.{' '}
-          <Link href="/login" className="font-medium text-hack-primary hover:underline">Start free →</Link>
+          <a href="https://chromewebstore.google.com/detail/hackdemo-%E2%80%94-ai-demo-record/dlkbndgmhlmddbihhjilapjncpbenhkj" target="_blank" rel="noopener noreferrer" className="font-medium text-hack-primary hover:underline">Start free →</a>
         </p>
       </section>
     </article>

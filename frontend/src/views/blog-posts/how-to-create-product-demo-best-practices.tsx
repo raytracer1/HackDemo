@@ -54,7 +54,7 @@ export default function PostContent() {
         <p className="mt-2">
           Building a demo that follows all seven practices used to take hours. With <Link href="/" className="text-hack-primary hover:underline">HackDemo</Link>, you record your workflow once, and the platform handles narration, annotation, and MP4 export automatically — so your demos look professional in minutes, not hours.
         </p>
-        <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm"><strong>Create your first demo free —</strong> new users get <strong>$0.50 in credits</strong>, enough for 150+ AI-narrated demos.{' '}<Link href="/login" className="font-medium text-hack-primary hover:underline">Get started →</Link></p>
+        <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm"><strong>Create your first demo free —</strong> new users get <strong>$0.50 in credits</strong>, enough for 150+ AI-narrated demos.{' '}<a href="https://chromewebstore.google.com/detail/hackdemo-%E2%80%94-ai-demo-record/dlkbndgmhlmddbihhjilapjncpbenhkj" target="_blank" rel="noopener noreferrer" className="font-medium text-hack-primary hover:underline">Get started →</a></p>
       </section>
     </article>
   );

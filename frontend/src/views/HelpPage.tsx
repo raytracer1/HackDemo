@@ -1,11 +1,13 @@
 'use client';
 import Link from "next/link";
 
+const extUrl = 'https://chromewebstore.google.com/detail/hackdemo-%E2%80%94-ai-demo-record/dlkbndgmhlmddbihhjilapjncpbenhkj';
+
 const steps = [
   {
     num: 1,
     title: 'Install the Extension',
-    desc: 'Add the HackDemo Chrome extension from the Chrome Web Store. It adds a recording panel to any page.',
+    desc: <>Add the HackDemo{' '}<a href={extUrl} target="_blank" rel="noopener noreferrer" className="text-hack-primary hover:underline">Chrome extension</a>{' '}from the Chrome Web Store. It adds a recording panel to any page.</>,
   },
   {
     num: 2,
