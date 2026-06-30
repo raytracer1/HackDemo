@@ -5,9 +5,9 @@ import PageLayout from '@/components/PageLayout';
 import JsonLd from '@/components/JsonLd';
 import HomePage from '@/views/HomePage';
 
-const title = 'Turn Clicks into Product Demos with AI';
+const title = 'Turn Any Browser Workflow into a Narrated Product Demo — in Minutes';
 const description =
-  'Record your browser workflow and let HackDemo generate narrated, annotated demo videos in 20+ languages. Export as MP4 to share.';
+  'Record once. HackDemo adds AI narration, annotations, and voiceover in 20+ languages. Export as MP4 to share anywhere. Start free with $0.50 credits.';
 
 export const metadata: Metadata = {
   title,
@@ -48,7 +48,7 @@ const softwareAppSchema = {
     price: '0',
     priceCurrency: 'USD',
     description:
-      'Start free with $0.50 credits. AI narration packs from $9.90 — no subscription.',
+      'Start free with $0.50 credits. Full AI features — narration, multi-language TTS, annotations, MP4 export — from $9.90 one-time.',
   },
   aggregateRating: {
     // Placeholder — replace with real rating data when available
