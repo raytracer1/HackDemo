@@ -31,18 +31,18 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              // Next.js inline scripts + PayPal SDK + FFmpeg WASM
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://www.paypalobjects.com https://www.googletagmanager.com",
+              // Next.js inline scripts + PayPal SDK + FFmpeg WASM + Vercel Analytics + Google Analytics
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://www.paypalobjects.com https://www.googletagmanager.com https://va.vercel-scripts.com",
               // Tailwind generates inline styles
               "style-src 'self' 'unsafe-inline'",
               // Images from any HTTPS source (Google profile pics, R2 storage, etc.)
               "img-src 'self' https: data: blob:",
               // Video/audio from R2 storage (Cloudflare) + Google TTS
               "media-src 'self' https: blob:",
-              // Backend API + Google OAuth + FFmpeg WASM (uses data: URIs internally)
-              "connect-src 'self' https://api.hackdemo.win https://accounts.google.com https://www.paypal.com https://*.r2.cloudflarestorage.com https://*.google-analytics.com data: blob:",
-              // PayPal renders its buttons in an iframe
-              "frame-src https://www.paypal.com",
+              // Backend API + Google OAuth + PayPal + R2 storage + Google Analytics + FFmpeg WASM
+              "connect-src 'self' https://api.hackdemo.win https://accounts.google.com https://www.paypal.com https://*.r2.cloudflarestorage.com https://*.google-analytics.com https://analytics.google.com https://*.google.com data: blob:",
+              // PayPal renders its buttons in an iframe + YouTube demo video embed
+              "frame-src https://www.paypal.com https://www.youtube.com",
               // System fonts
               "font-src 'self'",
               // No <base> element
