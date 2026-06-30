@@ -5,33 +5,37 @@ import PageLayout from '@/components/PageLayout';
 import JsonLd from '@/components/JsonLd';
 import HomePage from '@/views/HomePage';
 
-const title = 'Turn Any Browser Workflow into a Narrated Product Demo — in Minutes';
+const title = 'Ship a Pitch-Ready Demo Before the Hackathon Deadline — HackDemo';
 const description =
-  'Record once. HackDemo adds AI narration, annotations, and voiceover in 20+ languages. Export as MP4 to share anywhere. Start free with $0.50 credits.';
+  'Built for hackathon teams. Record your prototype, and HackDemo auto-generates AI narration, annotations, and voiceover. Export a polished MP4 ready for Devpost, judges, and pitch decks — in under 5 minutes. Start free.';
 
 export const metadata: Metadata = {
   title,
   description,
   alternates: { canonical: 'https://hackdemo.win/' },
   keywords: [
-    'product demo',
+    'hackathon demo',
+    'product demo maker',
+    'AI demo generator',
+    'pitch video',
+    'Devpost submission',
+    'hackathon presentation',
     'browser recorder',
     'AI narration',
     'demo video',
-    'how-to tutorial',
     'chrome extension',
   ],
   openGraph: {
     title: `HackDemo — ${title}`,
     description,
-    images: [{ url: '/img/og.jpg', width: 1200, height: 630, alt: 'HackDemo — Turn Clicks into Product Demos with AI' }],
+    images: [{ url: '/img/og.jpg', width: 1200, height: 630, alt: 'HackDemo — Ship a pitch-ready demo before the hackathon deadline' }],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: `HackDemo — ${title}`,
     description,
-    images: [{ url: '/img/og.jpg', alt: 'HackDemo — Turn Clicks into Product Demos with AI' }],
+    images: [{ url: '/img/og.jpg', alt: 'HackDemo — Ship a pitch-ready demo before the hackathon deadline' }],
   },
 };
 
@@ -48,7 +52,7 @@ const softwareAppSchema = {
     price: '0',
     priceCurrency: 'USD',
     description:
-      'Start free with $0.50 credits. Full AI features — narration, multi-language TTS, annotations, MP4 export — from $9.90 one-time.',
+      'Built for hackathon teams. Start free with $0.50 credits — no credit card. Auto-generate AI-narrated, annotated demo videos ready for Devpost and judge presentations.',
   },
   aggregateRating: {
     // Placeholder — replace with real rating data when available
@@ -57,12 +61,13 @@ const softwareAppSchema = {
     ratingCount: '0',
   },
   featureList: [
-    'Browser workflow recording',
-    'AI-powered narration generation',
+    'One-click browser recording for hackathon prototypes',
+    'AI-powered narration generation — no scriptwriting needed',
     'Text-to-speech voiceover in 20+ languages',
-    'MP4 video export',
-    'Automatic step annotations',
-    'Sensitive information auto-blur',
+    'MP4 video export ready for Devpost and pitch decks',
+    'Automatic click and input annotations',
+    'Sensitive information auto-blur for safe sharing',
+    'From prototype to pitch-ready demo in under 5 minutes',
   ],
 };
 
