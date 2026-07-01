@@ -19,7 +19,7 @@ async function upsertUser(profile: {
     // Existing user — update profile info
     const row = existing.rows[0];
     await query(
-      `UPDATE users SET name = $1, image = $2, updated_at = now() WHERE id = $3`,
+      `UPDATE users SET name = $1, image = $2, email_verified = true, updated_at = now() WHERE id = $3`,
       [profile.name || null, profile.picture || null, row.id],
     );
     return {
@@ -32,8 +32,8 @@ async function upsertUser(profile: {
   // New user — generate our own UUID, set type = 'google'
   const userId = crypto.randomUUID();
   await query(
-    `INSERT INTO users (id, email, name, image, type, credits)
-     VALUES ($1, $2, $3, $4, 'google', $5)`,
+    `INSERT INTO users (id, email, name, image, type, email_verified, credits)
+     VALUES ($1, $2, $3, $4, 'google', true, $5)`,
     [
       userId,
       profile.email,
