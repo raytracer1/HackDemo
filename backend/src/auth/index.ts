@@ -61,18 +61,13 @@ export const authConfig: AuthConfig = {
   skipCSRFCheck,
   callbacks,
 
-  // Cross-domain cookie support (needed when frontend & backend are on different domains)
+  // Same-origin cookies (API proxied through frontend, OAuth callback points to frontend)
   useSecureCookies: isProduction,
   cookies: {
     sessionToken: {
       options: {
-        // In production with separate frontend/backend domains, the session
-        // cookie must be sent cross-origin, which requires SameSite=None.
-        // In dev, Lax works fine because Vite proxy makes it same-origin.
-        sameSite: isProduction ? 'none' : 'lax',
+        sameSite: 'lax',
         secure: isProduction,
-        // Auth.js defaults to __Host- prefix with SameSite=Lax, but for
-        // SameSite=None we must drop the __Host- prefix (no Domain attr).
       },
     },
   },

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import dynamic from 'next/dynamic';
-import { GoogleAnalytics } from '@next/third-parties/google';
-import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
 import JsonLd from '@/components/JsonLd';
+import CookieBanner from '@/components/CookieBanner';
+import AnalyticsWithConsent from '@/components/AnalyticsWithConsent';
 
 const Providers = dynamic(() => import('@/components/Providers'), { ssr: false });
 
@@ -94,8 +94,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-white text-gray-900 min-h-screen">
         <Providers>{children}</Providers>
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID!} />
-        <Analytics />
+        <AnalyticsWithConsent gaId={process.env.NEXT_PUBLIC_GA_ID!} />
+        <CookieBanner />
       </body>
     </html>
   );
